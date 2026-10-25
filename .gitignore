@@ -54,3 +54,10 @@ test_screen.png
 screen_initial.png
 sign_modal_*.png
 .vercel
+
+# Local case materials & heavy references
+design_references/
+MASTER_SPEC.md
+case.pdf
+*.pdf
+!backend/uploads/*.pdf
