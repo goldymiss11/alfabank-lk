@@ -180,4 +180,3 @@ func BuildPresets() []SyntheticPreset {
 		},
 	}
 }
-

@@ -10,7 +10,7 @@ import {
   Sliders,
   Loader2,
 } from 'lucide-react';
-import api from '../api/client';
+import api, { getApiErrorMessage } from '../api/client';
 import { formatRub, GRADE_CONFIG, STATE_LABELS } from '../utils';
 import type { Application } from '../types';
 
@@ -57,6 +57,7 @@ export function UnderwriterPanel({ application, onAction }: Props) {
   const [adjustedTerm, setAdjustedTerm] = useState<number>(initialTerm);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState<Action | null>(null);
+  const [error, setError] = useState('');
 
   const isManual =
     state === 'MANUAL_REVIEW' ||
@@ -68,6 +69,7 @@ export function UnderwriterPanel({ application, onAction }: Props) {
 
   async function takeAction(action: Action) {
     setLoading(action);
+    setError('');
     try {
       const payload: Record<string, unknown> = {
         action,
@@ -75,12 +77,12 @@ export function UnderwriterPanel({ application, onAction }: Props) {
           comment ||
           (action === 'REQUEST_CLARIFICATION'
             ? 'Предоставьте дополнительные пояснения и документы'
-            : `${ACTION_LABELS[action]} — ${new Date().toLocaleString('ru-RU')}`),
+            : `${ACTION_LABELS[action]} — решение андеррайтера`),
       };
 
       if (action === 'APPROVE' || action === 'COUNTER_OFFER') {
         const customOffer = {
-          variant_index: 0,
+          variant_index: 1,
           product_type: application.product_type,
           approved_amount: adjustedLimit,
           term_months: adjustedTerm,
@@ -96,6 +98,9 @@ export function UnderwriterPanel({ application, onAction }: Props) {
       await api.post(`/underwriter/applications/${application.id}/decide`, payload);
       setComment('');
       onAction();
+    } catch (requestError) {
+      console.error('underwriter action error', requestError);
+      setError(getApiErrorMessage(requestError, 'Не удалось сохранить решение. Проверьте статус заявки и параметры оффера.'));
     } finally {
       setLoading(null);
     }
@@ -267,6 +272,11 @@ export function UnderwriterPanel({ application, onAction }: Props) {
 
           {/* Action buttons */}
           <div className="space-y-2">
+            {error && (
+              <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-800">
+                {error}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               {/* Approve button */}
               <button

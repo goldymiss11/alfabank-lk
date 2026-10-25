@@ -10,64 +10,64 @@ import (
 type AppState string
 
 const (
-	StateDraft              AppState = "DRAFT"
-	StateSubmitted          AppState = "SUBMITTED"
-	StateValidation         AppState = "VALIDATION"
-	StateEnrichment         AppState = "ENRICHMENT"
-	StateScoringAndPolicy   AppState = "SCORING_AND_POLICY"
-	StateApproved           AppState = "APPROVED"
-	StateCounterOffer       AppState = "COUNTER_OFFER"
-	StateManualReview       AppState = "MANUAL_REVIEW"
-	StateNeedClarification  AppState = "NEED_CLARIFICATION"
-	StateResubmitted        AppState = "RESUBMITTED"
-	StateRejected           AppState = "REJECTED"
-	StateOfferAccepted      AppState = "OFFER_ACCEPTED"
-	StateContractSigned     AppState = "CONTRACT_SIGNED"
-	StateFunded             AppState = "FUNDED"
-	StateCancelled          AppState = "CANCELLED"
+	StateDraft             AppState = "DRAFT"
+	StateSubmitted         AppState = "SUBMITTED"
+	StateValidation        AppState = "VALIDATION"
+	StateEnrichment        AppState = "ENRICHMENT"
+	StateScoringAndPolicy  AppState = "SCORING_AND_POLICY"
+	StateApproved          AppState = "APPROVED"
+	StateCounterOffer      AppState = "COUNTER_OFFER"
+	StateManualReview      AppState = "MANUAL_REVIEW"
+	StateNeedClarification AppState = "NEED_CLARIFICATION"
+	StateResubmitted       AppState = "RESUBMITTED"
+	StateRejected          AppState = "REJECTED"
+	StateOfferAccepted     AppState = "OFFER_ACCEPTED"
+	StateContractSigned    AppState = "CONTRACT_SIGNED"
+	StateFunded            AppState = "FUNDED"
+	StateCancelled         AppState = "CANCELLED"
 )
 
 type Trigger string
 
 const (
-	TriggerSubmit               Trigger = "SUBMIT"
-	TriggerAutoValidate         Trigger = "AUTO_VALIDATE"
-	TriggerValidationPassed     Trigger = "VALIDATION_PASSED"
-	TriggerValidationFailed     Trigger = "VALIDATION_FAILED"
-	TriggerEnrichmentComplete   Trigger = "ENRICHMENT_COMPLETE"
-	TriggerAutoApprove          Trigger = "AUTO_APPROVE"
-	TriggerCounterOfferGenerated Trigger = "COUNTER_OFFER_GENERATED"
-	TriggerNeedsManualReview    Trigger = "NEEDS_MANUAL_REVIEW"
-	TriggerAutoReject           Trigger = "AUTO_REJECT"
-	TriggerUnderwriterApprove   Trigger = "UNDERWRITER_APPROVE"
-	TriggerUnderwriterReject    Trigger = "UNDERWRITER_REJECT"
-	TriggerRequestClarification Trigger = "REQUEST_CLARIFICATION"
+	TriggerSubmit                  Trigger = "SUBMIT"
+	TriggerAutoValidate            Trigger = "AUTO_VALIDATE"
+	TriggerValidationPassed        Trigger = "VALIDATION_PASSED"
+	TriggerValidationFailed        Trigger = "VALIDATION_FAILED"
+	TriggerEnrichmentComplete      Trigger = "ENRICHMENT_COMPLETE"
+	TriggerAutoApprove             Trigger = "AUTO_APPROVE"
+	TriggerCounterOfferGenerated   Trigger = "COUNTER_OFFER_GENERATED"
+	TriggerNeedsManualReview       Trigger = "NEEDS_MANUAL_REVIEW"
+	TriggerAutoReject              Trigger = "AUTO_REJECT"
+	TriggerUnderwriterApprove      Trigger = "UNDERWRITER_APPROVE"
+	TriggerUnderwriterReject       Trigger = "UNDERWRITER_REJECT"
+	TriggerRequestClarification    Trigger = "REQUEST_CLARIFICATION"
 	TriggerUnderwriterCounterOffer Trigger = "UNDERWRITER_COUNTER_OFFER"
-	TriggerClientResponded      Trigger = "CLIENT_RESPONDED"
-	TriggerReScore              Trigger = "RE_SCORE"
-	TriggerAcceptOffer          Trigger = "ACCEPT_OFFER"
-	TriggerSignContract         Trigger = "SIGN_CONTRACT"
-	TriggerDisburse             Trigger = "DISBURSE"
-	TriggerCancel               Trigger = "CANCEL"
-	TriggerOffersExpired        Trigger = "OFFERS_EXPIRED"
+	TriggerClientResponded         Trigger = "CLIENT_RESPONDED"
+	TriggerReScore                 Trigger = "RE_SCORE"
+	TriggerAcceptOffer             Trigger = "ACCEPT_OFFER"
+	TriggerSignContract            Trigger = "SIGN_CONTRACT"
+	TriggerDisburse                Trigger = "DISBURSE"
+	TriggerCancel                  Trigger = "CANCEL"
+	TriggerOffersExpired           Trigger = "OFFERS_EXPIRED"
 )
 
 type ActorType string
 
 const (
-	ActorClientOwner     ActorType = "CLIENT_OWNER"
+	ActorClientOwner      ActorType = "CLIENT_OWNER"
 	ActorClientAccountant ActorType = "CLIENT_ACCOUNTANT"
-	ActorSystemConveyor  ActorType = "SYSTEM_CONVEYOR"
-	ActorBankUnderwriter ActorType = "BANK_UNDERWRITER"
+	ActorSystemConveyor   ActorType = "SYSTEM_CONVEYOR"
+	ActorBankUnderwriter  ActorType = "BANK_UNDERWRITER"
 )
 
 type ProductType string
 
 const (
-	ProductOverdraft           ProductType = "OVERDRAFT"
-	ProductWorkingCapitalLoan  ProductType = "WORKING_CAPITAL_LOAN"
-	ProductRevolvingLineVKL    ProductType = "REVOLVING_LINE_VKL"
-	ProductInvestmentLoan      ProductType = "INVESTMENT_LOAN"
+	ProductOverdraft          ProductType = "OVERDRAFT"
+	ProductWorkingCapitalLoan ProductType = "WORKING_CAPITAL_LOAN"
+	ProductRevolvingLineVKL   ProductType = "REVOLVING_LINE_VKL"
+	ProductInvestmentLoan     ProductType = "INVESTMENT_LOAN"
 )
 
 type RiskGrade string
@@ -90,11 +90,11 @@ const (
 )
 
 type EgrulData struct {
-	RegistrationDate string                   `json:"registration_date"`
-	AuthorizedCapital *float64                `json:"authorized_capital"`
-	OkvedMain        string                   `json:"okved_main"`
-	IsLiquidating    bool                     `json:"is_liquidating"`
-	Founders         []map[string]interface{} `json:"founders"`
+	RegistrationDate  string                   `json:"registration_date"`
+	AuthorizedCapital *float64                 `json:"authorized_capital"`
+	OkvedMain         string                   `json:"okved_main"`
+	IsLiquidating     bool                     `json:"is_liquidating"`
+	Founders          []map[string]interface{} `json:"founders"`
 }
 
 type FnsData struct {
@@ -114,10 +114,10 @@ type BkiData struct {
 }
 
 type AlfaAccountsData struct {
-	MonthlyRevenue        []float64 `json:"monthly_revenue"`
-	AvgBalance            float64   `json:"avg_balance"`
-	UniqueCounterparties  int       `json:"unique_counterparties"`
-	TaxPaymentsRegular    bool      `json:"tax_payments_regular"`
+	MonthlyRevenue       []float64 `json:"monthly_revenue"`
+	AvgBalance           float64   `json:"avg_balance"`
+	UniqueCounterparties int       `json:"unique_counterparties"`
+	TaxPaymentsRegular   bool      `json:"tax_payments_regular"`
 }
 
 type EnrichmentBundle struct {
@@ -163,40 +163,40 @@ type ActionItem struct {
 }
 
 type RehabilitationPlan struct {
-	DurationDays         int          `json:"duration_days"`
-	RejectionReasons     []string     `json:"rejection_reasons"`
-	ActionItems          []ActionItem `json:"action_items"`
-	EstimatedGradeAfter  string       `json:"estimated_grade_after"`
-	ReapplyEligibleDate  string       `json:"reapply_eligible_date"`
+	DurationDays        int          `json:"duration_days"`
+	RejectionReasons    []string     `json:"rejection_reasons"`
+	ActionItems         []ActionItem `json:"action_items"`
+	EstimatedGradeAfter string       `json:"estimated_grade_after"`
+	ReapplyEligibleDate string       `json:"reapply_eligible_date"`
 }
 
 type DecisionResult struct {
-	Decision            Decision            `json:"decision"`
-	MaxMonthlyPayment   float64             `json:"max_monthly_payment"`
-	MaxUnsecuredLimit   float64             `json:"max_unsecured_limit"`
-	MaxSecuredLimit     float64             `json:"max_secured_limit"`
-	DtiRatio            float64             `json:"dti_ratio"`
-	Offers              []CreditOffer       `json:"offers"`
-	RehabilitationPlan  *RehabilitationPlan `json:"rehabilitation_plan"`
-	SoftFlags           []string            `json:"soft_flags"`
+	Decision           Decision            `json:"decision"`
+	MaxMonthlyPayment  float64             `json:"max_monthly_payment"`
+	MaxUnsecuredLimit  float64             `json:"max_unsecured_limit"`
+	MaxSecuredLimit    float64             `json:"max_secured_limit"`
+	DtiRatio           float64             `json:"dti_ratio"`
+	Offers             []CreditOffer       `json:"offers"`
+	RehabilitationPlan *RehabilitationPlan `json:"rehabilitation_plan"`
+	SoftFlags          []string            `json:"soft_flags"`
 }
 
 type ApplicationRequest struct {
-	CompanyINN         string      `json:"company_inn"`
-	ProductType        ProductType `json:"product_type"`
-	RequestedAmount    float64     `json:"requested_amount"`
-	RequestedTermMonths int        `json:"requested_term_months"`
-	GovProgramID       *string     `json:"gov_program_id"`
+	CompanyINN          string      `json:"company_inn"`
+	ProductType         ProductType `json:"product_type"`
+	RequestedAmount     float64     `json:"requested_amount"`
+	RequestedTermMonths int         `json:"requested_term_months"`
+	GovProgramID        *string     `json:"gov_program_id"`
 }
 
 type ProductConfig struct {
-	Code                 ProductType
-	MinAmount            float64
-	MaxAmount            float64
-	MinTerm              int
-	MaxTerm              int
-	Rates                map[RiskGrade]float64
-	CollateralThreshold  *float64
+	Code                ProductType
+	MinAmount           float64
+	MaxAmount           float64
+	MinTerm             int
+	MaxTerm             int
+	Rates               map[RiskGrade]float64
+	CollateralThreshold *float64
 }
 
 var collateral5M = 5_000_000.0
@@ -206,25 +206,25 @@ var ProductCatalog = map[ProductType]ProductConfig{
 	ProductOverdraft: {
 		Code: ProductOverdraft, MinAmount: 50_000, MaxAmount: 3_000_000,
 		MinTerm: 3, MaxTerm: 12,
-		Rates: map[RiskGrade]float64{GradeA: 18.0, GradeB: 21.0, GradeC: 25.0},
+		Rates:               map[RiskGrade]float64{GradeA: 18.0, GradeB: 21.0, GradeC: 25.0},
 		CollateralThreshold: nil,
 	},
 	ProductWorkingCapitalLoan: {
 		Code: ProductWorkingCapitalLoan, MinAmount: 500_000, MaxAmount: 30_000_000,
 		MinTerm: 6, MaxTerm: 36,
-		Rates: map[RiskGrade]float64{GradeA: 16.0, GradeB: 19.0, GradeC: 23.0},
+		Rates:               map[RiskGrade]float64{GradeA: 16.0, GradeB: 19.0, GradeC: 23.0},
 		CollateralThreshold: &collateral5M,
 	},
 	ProductRevolvingLineVKL: {
 		Code: ProductRevolvingLineVKL, MinAmount: 300_000, MaxAmount: 20_000_000,
 		MinTerm: 12, MaxTerm: 36,
-		Rates: map[RiskGrade]float64{GradeA: 17.0, GradeB: 20.0, GradeC: 24.0},
+		Rates:               map[RiskGrade]float64{GradeA: 17.0, GradeB: 20.0, GradeC: 24.0},
 		CollateralThreshold: &collateral3M,
 	},
 	ProductInvestmentLoan: {
 		Code: ProductInvestmentLoan, MinAmount: 1_000_000, MaxAmount: 50_000_000,
 		MinTerm: 12, MaxTerm: 60,
-		Rates: map[RiskGrade]float64{GradeA: 14.0, GradeB: 17.0, GradeC: 21.0},
+		Rates:               map[RiskGrade]float64{GradeA: 14.0, GradeB: 17.0, GradeC: 21.0},
 		CollateralThreshold: &collateral3M,
 	},
 }
@@ -237,8 +237,8 @@ var AlternativeProduct = map[ProductType]ProductType{
 }
 
 type gradeBound struct {
-	Grade  RiskGrade
-	Lo, Hi int
+	Grade      RiskGrade
+	Lo, Hi     int
 	PdLo, PdHi float64
 }
 
@@ -644,8 +644,8 @@ func roundFloat(f float64, places int) float64 {
 }
 
 const (
-	netMargin       = 0.15
-	dtiLimit        = 0.50
+	netMargin         = 0.15
+	dtiLimit          = 0.50
 	securedMultiplier = 2.0
 )
 
@@ -913,7 +913,10 @@ func hasSeasonalVolatility(monthly []float64) bool {
 }
 
 func annuityPayment(principal, annualRate float64, termMonths int) float64 {
-	if annualRate == 0 || termMonths == 0 {
+	if termMonths <= 0 {
+		return 0
+	}
+	if annualRate == 0 {
 		return principal / float64(termMonths)
 	}
 	r := annualRate / 100.0 / 12.0
@@ -935,5 +938,3 @@ func annuityLimit(maxPayment, annualRate float64, termMonths int) float64 {
 func containsInsensitive(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
-
-

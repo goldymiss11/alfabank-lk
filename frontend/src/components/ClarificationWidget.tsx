@@ -8,8 +8,9 @@ import {
   FileText,
   Loader2,
   X,
+  AlertTriangle,
 } from 'lucide-react';
-import api from '../api/client';
+import api, { getApiErrorMessage } from '../api/client';
 import type { Clarification } from '../types';
 import { formatDate } from '../utils';
 
@@ -32,10 +33,12 @@ function ClarificationCard({ clarification, applicationId, onResponded }: ItemPr
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function uploadDoc(file: File) {
     setUploading(true);
+    setError('');
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -51,6 +54,8 @@ function ClarificationCard({ clarification, applicationId, onResponded }: ItemPr
       });
       setDocId(data.document_id);
       setFileName(file.name);
+    } catch (e) {
+      setError(getApiErrorMessage(e, 'Не удалось загрузить документ.'));
     } finally {
       setUploading(false);
     }
@@ -81,12 +86,15 @@ function ClarificationCard({ clarification, applicationId, onResponded }: ItemPr
   async function respond() {
     if (!text.trim() && !docId) return;
     setSending(true);
+    setError('');
     try {
       await api.post(`/clarifications/${clarification.id}/respond`, {
         response_text: text || 'Документ прикреплён',
         document_ids: docId ? [docId] : [],
       });
       onResponded();
+    } catch (e) {
+      setError(getApiErrorMessage(e, 'Не удалось отправить ответ на уточнение.'));
     } finally {
       setSending(false);
     }
@@ -114,6 +122,13 @@ function ClarificationCard({ clarification, applicationId, onResponded }: ItemPr
           Ожидает ответа
         </span>
       </div>
+
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Bank message card */}
       <div className="rounded-2xl bg-amber-50/60 border border-amber-100 p-4 text-xs text-amber-900 leading-relaxed font-medium space-y-2">

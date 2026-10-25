@@ -64,29 +64,31 @@ type DocumentEntry struct {
 }
 
 type Application struct {
-	ID                   string                        `json:"id"`
-	CompanyID            string                        `json:"company_id"`
-	Company              Company                       `json:"company"`
-	OwnerUserID          string                        `json:"owner_user_id"`
-	AccountantUserID     string                        `json:"accountant_user_id"`
-	ProductType          string                        `json:"product_type"`
-	RequestedAmount      float64                       `json:"requested_amount"`
-	RequestedTermMonths  int                           `json:"requested_term_months"`
-	GovProgramID         *string                       `json:"gov_program_id"`
-	GovProgramTitle      *string                       `json:"gov_program_title,omitempty"`
-	State                conveyor.AppState             `json:"state"`
-	ScoringResult        *conveyor.ScoringResult       `json:"scoring_result"`
-	DecisionResult       *conveyor.DecisionResult      `json:"decision_result"`
-	Offers               []conveyor.CreditOffer        `json:"offers"`
-	RehabilitationPlan   *conveyor.RehabilitationPlan  `json:"rehabilitation_plan"`
-	EnrichmentSnapshots  *conveyor.EnrichmentBundle    `json:"enrichment_snapshots"`
-	AuditLog             []AuditLogEntry               `json:"audit_log"`
-	Clarifications       []Clarification               `json:"clarifications"`
-	Documents            []DocumentEntry               `json:"documents"`
+	ID                    string                       `json:"id"`
+	CompanyID             string                       `json:"company_id"`
+	Company               Company                      `json:"company"`
+	OwnerUserID           string                       `json:"owner_user_id"`
+	AccountantUserID      string                       `json:"accountant_user_id"`
+	ProductType           string                       `json:"product_type"`
+	RequestedAmount       float64                      `json:"requested_amount"`
+	RequestedTermMonths   int                          `json:"requested_term_months"`
+	GovProgramID          *string                      `json:"gov_program_id"`
+	GovProgramTitle       *string                      `json:"gov_program_title,omitempty"`
+	State                 conveyor.AppState            `json:"state"`
+	ScoringResult         *conveyor.ScoringResult      `json:"scoring_result"`
+	DecisionResult        *conveyor.DecisionResult     `json:"decision_result"`
+	Offers                []conveyor.CreditOffer       `json:"offers"`
+	RehabilitationPlan    *conveyor.RehabilitationPlan `json:"rehabilitation_plan"`
+	EnrichmentSnapshots   *conveyor.EnrichmentBundle   `json:"enrichment_snapshots"`
+	AuditLog              []AuditLogEntry              `json:"audit_log"`
+	Clarifications        []Clarification              `json:"clarifications"`
+	Documents             []DocumentEntry              `json:"documents"`
 	DelegatedToAccountant bool                         `json:"delegated_to_accountant"`
-	SelectedOfferVariant *int                          `json:"selected_offer_variant,omitempty"`
-	CreatedAt            string                        `json:"created_at"`
-	UpdatedAt            string                        `json:"updated_at"`
+	SelectedOfferVariant  *int                         `json:"selected_offer_variant,omitempty"`
+	SignedAt              *string                      `json:"signed_at,omitempty"`
+	DisbursedAt           *string                      `json:"disbursed_at,omitempty"`
+	CreatedAt             string                       `json:"created_at"`
+	UpdatedAt             string                       `json:"updated_at"`
 }
 
 type DB struct {
@@ -168,8 +170,8 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 			State: conveyor.StateDraft, Offers: []conveyor.CreditOffer{},
 			AuditLog: []AuditLogEntry{{
 				ID: newUUID(), ApplicationID: appID, FromState: nil,
-				ToState:     string(conveyor.StateDraft),
-				Trigger:     "INIT_PRESET", ActorType: string(conveyor.ActorSystemConveyor),
+				ToState: string(conveyor.StateDraft),
+				Trigger: "INIT_PRESET", ActorType: string(conveyor.ActorSystemConveyor),
 				DetailsJSON: map[string]interface{}{"preset_id": presetID},
 				CreatedAt:   now(),
 			}},
@@ -190,10 +192,10 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 		ID: compID, INN: preset.Company.INN, OGRN: preset.Company.OGRN,
 		Name: preset.Company.Name, FullName: preset.Company.FullName,
 		LegalForm: preset.Company.LegalForm, OkvedMain: preset.Company.OkvedMain,
-		OkvedDescription: preset.Company.OkvedDescription,
-		RegistrationDate: preset.Company.RegistrationDate,
+		OkvedDescription:  preset.Company.OkvedDescription,
+		RegistrationDate:  preset.Company.RegistrationDate,
 		AuthorizedCapital: preset.Company.AuthorizedCapital,
-		Address: preset.Company.Address, EmployeeCount: preset.Company.EmployeeCount,
+		Address:           preset.Company.Address, EmployeeCount: preset.Company.EmployeeCount,
 		IsActive: preset.Company.IsActive,
 	}
 	db.Companies[compID] = comp
@@ -262,7 +264,10 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 }
 
 func buildAuditTrail(appID string, finalState conveyor.AppState) []AuditLogEntry {
-	type step struct{ from, to string; trigger, actor string }
+	type step struct {
+		from, to       string
+		trigger, actor string
+	}
 	chain := []step{
 		{from: "", to: "DRAFT", trigger: "INIT_PRESET", actor: "SYSTEM_CONVEYOR"},
 		{from: "DRAFT", to: "SUBMITTED", trigger: "SUBMIT", actor: "CLIENT_OWNER"},
@@ -336,9 +341,8 @@ func (db *DB) ListApplications() []Application {
 }
 
 type StoreErr struct{ Msg string }
+
 func (e StoreErr) Error() string { return e.Msg }
 func ErrNotFound(entity, id string) StoreErr {
 	return StoreErr{Msg: entity + " '" + id + "' не найден"}
 }
-
-

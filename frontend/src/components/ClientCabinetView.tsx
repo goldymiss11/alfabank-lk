@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, CreditCard, Calendar, Users, User, Briefcase, Landmark } from 'lucide-react';
+import { Building2, CreditCard, Calendar, Users, User, Briefcase, Landmark, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { Application, ProductType } from '../types';
 import { PRODUCT_LABELS, formatRub, GRADE_CONFIG, STATE_LABELS } from '../utils';
 import { PipelineTracker } from './PipelineTracker';
@@ -11,7 +11,7 @@ import { ClarificationWidget } from './ClarificationWidget';
 import { CounterOffersMatrix } from './CounterOffersMatrix';
 import { RejectionPlan } from './RejectionPlan';
 import { useAppStore } from '../store/appStore';
-import api from '../api/client';
+import api, { getApiErrorMessage } from '../api/client';
 
 interface Props {
   application: Application;
@@ -23,6 +23,8 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
   const { userRole, isDelegated } = useAppStore();
   const [manualInn, setManualInn] = useState('');
   const [updatingCompany, setUpdatingCompany] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [submittingApplication, setSubmittingApplication] = useState(false);
   const {
     company, state, scoring_result, decision_result,
     offers, rehabilitation_plan, clarifications,
@@ -41,12 +43,19 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
     : 0;
 
   async function handleSubmitApplication(product: ProductType, amount: number, term: number) {
+    if (submittingApplication) return;
+    setSubmittingApplication(true);
+    setActionError('');
     try {
       if (state === 'DRAFT') {
+        await api.patch(`/applications/${application.id}`, {
+          product_type: product,
+          requested_amount: amount,
+          requested_term_months: term,
+        });
         await api.post(`/applications/${application.id}/transition`, {
           trigger: 'SUBMIT',
           actor_type: 'CLIENT_OWNER',
-          payload: { product_type: product, requested_amount: amount, requested_term_months: term },
         });
       } else {
         const { data } = await api.post('/applications', {
@@ -64,9 +73,11 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
           });
         }
       }
-      onRefresh();
+      await onRefresh();
     } catch (e) {
-      console.error('Submit application failed', e);
+      setActionError(getApiErrorMessage(e, 'Не удалось отправить заявку. Проверьте параметры и повторите попытку.'));
+    } finally {
+      setSubmittingApplication(false);
     }
   }
 
@@ -85,7 +96,7 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
         onRefresh();
       }
     } catch (e) {
-      console.error('Failed to create application with INN', e);
+      setActionError(getApiErrorMessage(e, 'Не удалось загрузить данные компании. Проверьте ИНН и повторите попытку.'));
     } finally {
       setUpdatingCompany(false);
     }
@@ -103,6 +114,12 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
 
   return (
     <div className="space-y-4">
+      {actionError && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
       {/* Company + Application header card (Bento style) */}
       <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 shadow-xs space-y-5 alfa-card-hover">
         <div className="flex items-start justify-between gap-4">
@@ -263,6 +280,24 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
           applicationId={application.id}
           onResponded={onRefresh}
         />
+      )}
+
+      {/* Decision: approved / counter-offer matrix */}
+      {decision_result && (state === 'APPROVED' || state === 'COUNTER_OFFER' || state === 'OFFER_ACCEPTED' || state === 'CONTRACT_SIGNED' || state === 'FUNDED') && (
+        <div className="rounded-3xl border border-indigo-100 bg-indigo-50/50 p-5 shadow-xs space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-xl bg-white p-2 text-indigo-600"><ShieldCheck className="h-4 w-4" /></div>
+            <div>
+              <h3 className="text-sm font-bold text-neutral-900">Почему банк предложил эти условия</h3>
+              <p className="mt-1 text-xs leading-relaxed text-neutral-600">Это объяснение построено на факторах синтетического скоринга стенда, а не на реальных банковских данных.</p>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">Сильные стороны</p><p className="mt-1 text-xs text-neutral-700">{(scoring_result?.factors_breakdown ?? []).filter((factor) => factor.score_delta > 0).slice(0, 3).map((factor) => factor.factor_name).join(' · ') || 'Стабильный профиль и обороты'}</p></div>
+            <div className="rounded-2xl bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">Ограничение</p><p className="mt-1 text-xs text-neutral-700">{decision_result.soft_flags?.[0] || scoring_result?.stop_factors?.[0] || `Запрос: ${formatRub(application.requested_amount)} при лимите без обеспечения ${formatRub(decision_result.max_unsecured_limit)}`}</p></div>
+            <div className="rounded-2xl bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-700">Следующий шаг</p><p className="mt-1 text-xs text-neutral-700">{state === 'FUNDED' ? 'Средства зачислены' : state === 'CONTRACT_SIGNED' ? 'Подтвердите получение финансирования' : 'Выберите подходящее предложение и проверьте документы'}</p></div>
+          </div>
+        </div>
       )}
 
       {/* Decision: approved / counter-offer matrix */}

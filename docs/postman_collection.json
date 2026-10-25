@@ -66,6 +66,18 @@
       }
     },
     {
+      "name": "7.1 Applications - Update Draft (PATCH)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_type\": \"WORKING_CAPITAL_LOAN\",\n  \"requested_amount\": 2500000,\n  \"requested_term_months\": 18\n}"
+        },
+        "url": "{{baseUrl}}/api/applications/{{appId}}"
+      }
+    },
+    {
       "name": "8. Applications - Transition (Accept Offer)",
       "request": {
         "method": "POST",
@@ -90,14 +102,26 @@
       }
     },
     {
-      "name": "10. Underwriter - Queue",
+      "name": "10. Applications - Disburse (Direct & Idempotent)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actor_type\": \"SYSTEM_CONVEYOR\"\n}"
+        },
+        "url": "{{baseUrl}}/api/applications/{{appId}}/disburse"
+      }
+    },
+    {
+      "name": "11. Underwriter - Queue",
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/api/underwriter/queue"
       }
     },
     {
-      "name": "11. Underwriter - Decide (Approve)",
+      "name": "12. Underwriter - Decide (Approve)",
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -109,14 +133,14 @@
       }
     },
     {
-      "name": "12. News - Gov Support by OKVED",
+      "name": "13. News - Gov Support by OKVED",
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/api/news?okved_prefix=56"
       }
     },
     {
-      "name": "13. AI Advisor - Chat",
+      "name": "14. AI Advisor - Chat",
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],

@@ -4,8 +4,8 @@ import "fmt"
 
 var transitions = map[AppState]map[Trigger]AppState{
 	StateDraft: {
-		TriggerSubmit:  StateSubmitted,
-		TriggerCancel:  StateCancelled,
+		TriggerSubmit: StateSubmitted,
+		TriggerCancel: StateCancelled,
 	},
 	StateSubmitted: {
 		TriggerAutoValidate: StateValidation,
@@ -19,17 +19,17 @@ var transitions = map[AppState]map[Trigger]AppState{
 		TriggerEnrichmentComplete: StateScoringAndPolicy,
 	},
 	StateScoringAndPolicy: {
-		TriggerAutoApprove:          StateApproved,
+		TriggerAutoApprove:           StateApproved,
 		TriggerCounterOfferGenerated: StateCounterOffer,
-		TriggerNeedsManualReview:    StateManualReview,
-		TriggerAutoReject:           StateRejected,
+		TriggerNeedsManualReview:     StateManualReview,
+		TriggerAutoReject:            StateRejected,
 	},
 	StateApproved: {
 		TriggerAcceptOffer: StateOfferAccepted,
 	},
 	StateCounterOffer: {
-		TriggerAcceptOffer:  StateOfferAccepted,
-		TriggerCancel:       StateCancelled,
+		TriggerAcceptOffer:   StateOfferAccepted,
+		TriggerCancel:        StateCancelled,
 		TriggerOffersExpired: StateRejected,
 	},
 	StateManualReview: {
@@ -119,4 +119,3 @@ func RunConveyor(req ApplicationRequest, enrichment EnrichmentBundle) (AppState,
 
 	return state, &scoring, &decision
 }
-

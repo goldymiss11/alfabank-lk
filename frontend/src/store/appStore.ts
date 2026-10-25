@@ -16,12 +16,16 @@ interface AppStore {
   application: Application | null;
   applicationId: string | null;
   isLoading: boolean;
+  errorMessage: string;
 
   setPresets: (presets: Preset[]) => void;
   setActivePresetId: (id: string) => void;
   setApplication: (app: Application | null) => void;
   setApplicationId: (id: string | null) => void;
   setIsLoading: (v: boolean) => void;
+  setErrorMessage: (message: string) => void;
+  clearError: () => void;
+  resetTransientState: () => void;
 
   // Underwriter panel state
   underwriterInput: string;
@@ -47,12 +51,22 @@ export const useAppStore = create<AppStore>((set) => ({
   application: null,
   applicationId: null,
   isLoading: false,
+  errorMessage: '',
 
   setPresets: (presets) => set({ presets }),
   setActivePresetId: (id) => set({ activePresetId: id }),
   setApplication: (app) => set({ application: app }),
   setApplicationId: (id) => set({ applicationId: id }),
   setIsLoading: (v) => set({ isLoading: v }),
+  setErrorMessage: (message) => set({ errorMessage: message }),
+  clearError: () => set({ errorMessage: '' }),
+  resetTransientState: () => set({
+    userRole: 'OWNER',
+    isDelegated: false,
+    otpValue: '',
+    underwriterInput: '',
+    errorMessage: '',
+  }),
 
   underwriterInput: '',
   setUnderwriterInput: (v) => set({ underwriterInput: v }),

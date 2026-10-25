@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Zap,
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import type { CreditOffer, Application } from '../types';
 import { PRODUCT_LABELS } from '../utils';
-import api from '../api/client';
+import api, { getApiErrorMessage } from '../api/client';
 
 interface Props {
   offers: CreditOffer[];
@@ -67,10 +67,10 @@ interface SignModalProps {
 
 function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'preview' | 'otp' | 'funded'>('preview');
+  const [step, setStep] = useState<'preview' | 'otp' | 'signed' | 'funded'>('preview');
   const [signing, setSigning] = useState(false);
+  const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(45);
-  const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -84,24 +84,14 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
     };
   }, [step, countdown]);
 
-  useEffect(() => {
-    return () => {
-      if (finishTimeoutRef.current) {
-        clearTimeout(finishTimeoutRef.current);
-      }
-    };
-  }, []);
-
   const handleFinish = () => {
-    if (finishTimeoutRef.current) {
-      clearTimeout(finishTimeoutRef.current);
-    }
     onSigned();
     onClose();
   };
 
   async function acceptOffer() {
     setSigning(true);
+    setError('');
     try {
       await api.post(`/applications/${application.id}/transition`, {
         trigger: 'ACCEPT_OFFER',
@@ -110,23 +100,38 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
       });
       setStep('otp');
     } catch (e) {
-      console.error(e);
+      setError(getApiErrorMessage(e, 'Не удалось принять предложение. Заявка не изменилась.'));
     } finally {
       setSigning(false);
     }
   }
 
   async function sign() {
-    if (otp.length < 4) return;
+    if (otp.length < 4 || signing) return;
     setSigning(true);
+    setError('');
     try {
-      await api.post(`/applications/${application.id}/sign`, { otp_code: otp });
-      setStep('funded');
-      finishTimeoutRef.current = setTimeout(() => {
-        handleFinish();
-      }, 4000);
+      const { data } = await api.post(`/applications/${application.id}/sign`, { otp_code: otp });
+      if (data.state !== 'CONTRACT_SIGNED') throw new Error('Договор не перешёл в статус подписанного. Обновите заявку.');
+      setStep('signed');
+      onSigned();
     } catch (e) {
-      console.error(e);
+      setError(getApiErrorMessage(e, 'Не удалось подписать договор. Проверьте код и повторите попытку.'));
+    } finally {
+      setSigning(false);
+    }
+  }
+
+  async function disburse() {
+    if (signing) return;
+    setSigning(true);
+    setError('');
+    try {
+      const { data } = await api.post(`/applications/${application.id}/disburse`);
+      if (data.state !== 'FUNDED') throw new Error('Выдача не подтверждена. Проверьте статус заявки.');
+      setStep('funded');
+    } catch (e) {
+      setError(getApiErrorMessage(e, 'Договор подписан, но выдача не подтверждена. Повторите получение финансирования.'));
     } finally {
       setSigning(false);
     }
@@ -146,6 +151,8 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
         >
           <X className="w-4 h-4" />
         </button>
+
+        {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">{error}</div>}
 
         {/* Шаг 1: preview — Предпросмотр условий договора */}
         {step === 'preview' && (
@@ -314,10 +321,10 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
                 {signing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Подтверждение и получение финансирования...</span>
+                    <span>{signing ? 'Проверяем код...' : 'Подписать договор'}</span>
                   </>
                 ) : (
-                  <span>Подтвердить и получить финансирование</span>
+                    <span>Подписать договор</span>
                 )}
               </button>
 
@@ -333,6 +340,24 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
         )}
 
         {/* Шаг 3: funded — Успешное финансирование */}
+        {step === 'signed' && (
+          <div className="space-y-5 py-2">
+            <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" />
+              <div><h3 className="text-base font-bold text-neutral-900">Договор подписан</h3><p className="mt-0.5 text-xs text-neutral-600">Подпись подтверждена. Зачисление средств — отдельная операция.</p></div>
+            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-xs text-neutral-700">
+              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Договор подписан</div>
+              <div className="my-2 ml-1 h-5 border-l border-dashed border-neutral-300" />
+              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-500" /> Ожидает команды на финансирование</div>
+            </div>
+            <button type="button" onClick={disburse} disabled={signing} className="w-full rounded-full bg-[#EF3124] py-3.5 text-sm font-bold text-white shadow-sm disabled:opacity-50">
+              {signing ? 'Готовим зачисление...' : 'Получить финансирование'}
+            </button>
+          </div>
+        )}
+
+        {/* Шаг 4: funded — Успешное финансирование */}
         {step === 'funded' && (
           <div className="text-center space-y-6 py-2">
             <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
@@ -341,7 +366,7 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
 
             <div className="space-y-1.5">
               <h3 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">
-                Договор подписан! Средства зачислены
+                Договор подписан, средства зачислены
               </h3>
               <p className="text-xs sm:text-sm text-neutral-600 max-w-sm mx-auto leading-relaxed">
                 Деньги в размере <span className="font-bold text-neutral-900 tabular-nums">{offer.approved_amount.toLocaleString('ru-RU')} ₽</span> уже доступны на вашем расчётном счёте в Альфа-Банке
@@ -476,6 +501,21 @@ export function CounterOffersMatrix({ offers, application, onOfferAccepted, isSp
                         {offer.collateral_required
                           ? (offer.collateral_description || 'Зонтичное поручительство Корпорации МСП')
                           : 'Не требуется'}
+                      </span>
+                    </div>
+                    {application.requested_amount !== offer.approved_amount && (
+                      <div className="flex items-start justify-between pt-2.5 gap-2">
+                        <span className="text-neutral-500 shrink-0">Разница с запросом</span>
+                        <span className={`font-bold text-right leading-tight tabular-nums ${offer.approved_amount >= application.requested_amount ? 'text-emerald-700' : 'text-amber-700'}`}>
+                          {offer.approved_amount >= application.requested_amount ? '+' : ''}
+                          {Math.round(offer.approved_amount - application.requested_amount).toLocaleString('ru-RU')} ₽
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-start justify-between pt-2.5 gap-2">
+                      <span className="text-neutral-500 shrink-0">Переплата за весь срок</span>
+                      <span className="font-bold text-neutral-900 text-right tabular-nums">
+                        {Math.round(offer.monthly_payment * offer.term_months - offer.approved_amount).toLocaleString('ru-RU')} ₽
                       </span>
                     </div>
                   </div>

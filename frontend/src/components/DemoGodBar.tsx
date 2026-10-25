@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { RefreshCw, Play, Briefcase, Columns2, Landmark, UserCheck } from 'lucide-react';
 import { useAppStore, type ViewMode } from '../store/appStore';
-import api from '../api/client';
+import api, { getApiErrorMessage } from '../api/client';
 
 const VIEW_BUTTONS: { mode: ViewMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { mode: 'client', label: 'Кабинет предпринимателя', icon: Briefcase },
@@ -55,16 +56,22 @@ export function DemoGodBar() {
     viewMode,
     userRole,
     isDelegated,
+    setIsDelegated,
     setViewMode,
     setUserRole,
     setActivePresetId,
     setApplication,
     setApplicationId,
     setIsLoading,
+    resetTransientState,
   } = useAppStore();
+
+  const [demoError, setDemoError] = useState('');
 
   async function loadPreset(presetId: string) {
     setIsLoading(true);
+    setDemoError('');
+    resetTransientState();
     try {
       const { data } = await api.post(`/presets/${presetId}/load`);
       setActivePresetId(presetId);
@@ -72,9 +79,11 @@ export function DemoGodBar() {
         setApplicationId(data.application_id);
         const { data: app } = await api.get(`/applications/${data.application_id}`);
         setApplication(app);
+        setIsDelegated(Boolean(app.delegated_to_accountant));
       }
     } catch (e) {
       console.error('loadPreset error', e);
+      setDemoError(getApiErrorMessage(e, 'Не удалось загрузить сценарий. Проверьте доступность API.'));
     } finally {
       setIsLoading(false);
     }
@@ -90,27 +99,46 @@ export function DemoGodBar() {
       SUBMITTED:          'AUTO_VALIDATE',
       VALIDATION:         'VALIDATION_PASSED',
       ENRICHMENT:         'ENRICHMENT_COMPLETE',
-      SCORING_AND_POLICY: 'AUTO_APPROVE',
       APPROVED:           'ACCEPT_OFFER',
       COUNTER_OFFER:      'ACCEPT_OFFER',
       RESUBMITTED:        'RE_SCORE',
-      OFFER_ACCEPTED:     'SIGN_CONTRACT',
       CONTRACT_SIGNED:    'DISBURSE',
     };
 
-    const trigger = triggerMap[application.state];
-    if (!trigger) return;
+    const decisionTriggerMap: Record<string, string> = {
+      APPROVED: 'AUTO_APPROVE',
+      COUNTER_OFFER: 'COUNTER_OFFER_GENERATED',
+      MANUAL_REVIEW: 'NEEDS_MANUAL_REVIEW',
+      REJECTED: 'AUTO_REJECT',
+    };
+
+    const trigger = application.state === 'SCORING_AND_POLICY'
+      ? decisionTriggerMap[application.decision_result?.decision ?? '']
+      : triggerMap[application.state];
+    if (!trigger) {
+      setDemoError(`Для статуса «${application.state}» следующий шаг недоступен.`);
+      return;
+    }
 
     setIsLoading(true);
+    setDemoError('');
     try {
-      await api.post(`/applications/${applicationId}/transition`, {
-        trigger,
-        actor_type: 'SYSTEM_CONVEYOR',
-      });
+      if (application.state === 'CONTRACT_SIGNED') {
+        await api.post(`/applications/${applicationId}/disburse`, {
+          actor_type: 'SYSTEM_CONVEYOR',
+        });
+      } else {
+        await api.post(`/applications/${applicationId}/transition`, {
+          trigger,
+          actor_type: 'SYSTEM_CONVEYOR',
+        });
+      }
       const { data: app } = await api.get(`/applications/${applicationId}`);
       state.setApplication(app);
+      setIsDelegated(Boolean(app.delegated_to_accountant));
     } catch (e) {
       console.error('advancePipeline error', e);
+      setDemoError(getApiErrorMessage(e, 'Не удалось выполнить переход. Текущее состояние заявки могло измениться.'));
     } finally {
       setIsLoading(false);
     }
@@ -120,8 +148,13 @@ export function DemoGodBar() {
 
   return (
     <header className="bg-[#0F1115] text-white border-b border-white/10 sticky top-0 z-50">
+      {demoError && (
+        <div role="alert" className="bg-rose-950/80 border-b border-rose-400/30 px-4 py-2 text-center text-xs font-medium text-rose-100">
+          {demoError}
+        </div>
+      )}
       {/* Row 1: Logo + View Mode Segmented Switcher + Demo Controls */}
-      <div className="max-w-[1680px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+      <div className="max-w-[1680px] mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3">
         {/* Alfa Logo & Branding */}
         <div className="flex items-center gap-3 shrink-0 select-none">
           <div className="flex flex-col items-center justify-center shrink-0">
@@ -134,7 +167,7 @@ export function DemoGodBar() {
               <span className="bg-[#EF3124]/20 text-[#EF3124] border border-[#EF3124]/30 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">PRO</span>
             </div>
             <div className="text-[11px] text-neutral-400 leading-tight">
-              Кредитный конвейер
+              Кредитный конвейер · <span className="text-amber-400 font-semibold">Стенд демонстрации</span>
             </div>
           </div>
         </div>
@@ -165,7 +198,7 @@ export function DemoGodBar() {
         </nav>
 
         {/* Demo Controls: Role Switcher + Reset + Advance Pipeline */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {/* Role Pill Switcher */}
           <button
             type="button"

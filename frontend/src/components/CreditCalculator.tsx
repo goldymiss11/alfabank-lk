@@ -34,6 +34,21 @@ export function CreditCalculator({ netMonthlyIncome, existingPayments, grade, su
 
   const [amount, setAmount] = useState(suggestedAmount ?? Math.floor((cfg.minAmt + cfg.maxAmt) / 2));
   const [term, setTerm] = useState(suggestedTerm ?? Math.floor((cfg.minTerm + cfg.maxTerm) / 2));
+  const [submitting, setSubmitting] = useState(false);
+
+  const [prevProps, setPrevProps] = useState({ suggestedProduct, suggestedAmount, suggestedTerm });
+  if (
+    prevProps.suggestedProduct !== suggestedProduct ||
+    prevProps.suggestedAmount !== suggestedAmount ||
+    prevProps.suggestedTerm !== suggestedTerm
+  ) {
+    setPrevProps({ suggestedProduct, suggestedAmount, suggestedTerm });
+    const nextProduct = suggestedProduct ?? 'WORKING_CAPITAL_LOAN';
+    const nextCfg = PRODUCTS.find((p) => p.type === nextProduct) ?? PRODUCTS[1];
+    setProduct(nextProduct);
+    setAmount(suggestedAmount ?? Math.floor((nextCfg.minAmt + nextCfg.maxAmt) / 2));
+    setTerm(suggestedTerm ?? Math.floor((nextCfg.minTerm + nextCfg.maxTerm) / 2));
+  }
 
   const safeAmount = Math.min(Math.max(amount, cfg.minAmt), cfg.maxAmt);
   const safeTerm = Math.min(Math.max(term, cfg.minTerm), cfg.maxTerm);
@@ -250,10 +265,18 @@ export function CreditCalculator({ netMonthlyIncome, existingPayments, grade, su
             {/* Main Action Button (CTA) */}
             <button
               type="button"
-              onClick={() => onSubmit(product, safeAmount, safeTerm)}
-              className="w-full bg-[#EF3124] hover:bg-[#D9261A] text-white py-3.5 px-6 rounded-full font-bold text-sm shadow-sm transition-all alfa-btn flex items-center justify-center gap-2"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                try {
+                  await onSubmit(product, safeAmount, safeTerm);
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              className="w-full bg-[#EF3124] hover:bg-[#D9261A] text-white py-3.5 px-6 rounded-full font-bold text-sm shadow-sm transition-all alfa-btn flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <span>Подать заявку на этих условиях</span>
+              <span>{submitting ? 'Сохраняем и отправляем…' : 'Подать заявку на этих условиях'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

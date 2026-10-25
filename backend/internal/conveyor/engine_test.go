@@ -88,6 +88,14 @@ func TestScoreAndDecidePreset4(t *testing.T) {
 	}
 }
 
+func TestAnnuityPaymentReturnsZeroForNonPositiveTerm(t *testing.T) {
+	for _, termMonths := range []int{0, -1} {
+		if got := annuityPayment(100_000, 12, termMonths); got != 0 {
+			t.Errorf("annuityPayment with term %d = %v, want 0", termMonths, got)
+		}
+	}
+}
+
 func TestFSMTransitions(t *testing.T) {
 	if !CanTransition(StateDraft, TriggerSubmit) {
 		t.Errorf("expected CanTransition(StateDraft, TriggerSubmit) to be true")
@@ -101,4 +109,3 @@ func TestFSMTransitions(t *testing.T) {
 		t.Errorf("expected transition to StateSubmitted, got %s, err: %v", next, err)
 	}
 }
-

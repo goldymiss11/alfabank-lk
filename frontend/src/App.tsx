@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { Building2, ShieldCheck } from 'lucide-react';
+import { Building2, ShieldCheck, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { DemoGodBar } from './components/DemoGodBar';
 import { ClientCabinetView } from './components/ClientCabinetView';
 import { BankConveyorView } from './components/BankConveyorView';
 import { useAppStore } from './store/appStore';
-import api from './api/client';
+import api, { getApiErrorMessage } from './api/client';
 
 function App() {
   const {
@@ -17,6 +17,11 @@ function App() {
     setApplication,
     setApplicationId,
     setIsLoading,
+    setIsDelegated,
+    resetTransientState,
+    errorMessage,
+    setErrorMessage,
+    clearError,
   } = useAppStore();
 
   // Initial load
@@ -34,18 +39,30 @@ function App() {
         // Load default preset application
         const { data: loaded } = await api.post(`/presets/${presetsData.active_preset_id ?? 'coffee_shop_ip'}/load`);
         if (loaded.application_id) {
+          resetTransientState();
           setApplicationId(loaded.application_id);
           const { data: app } = await api.get(`/applications/${loaded.application_id}`);
           setApplication(app);
+          setIsDelegated(Boolean(app.delegated_to_accountant));
         }
       } catch (e) {
         console.error('Init failed', e);
+        setErrorMessage(getApiErrorMessage(e, 'Не удалось подключиться к кредитному конвейеру.'));
       } finally {
         setIsLoading(false);
       }
     }
     init();
-  }, []);
+  }, [
+    setActivePresetId,
+    setApplication,
+    setApplicationId,
+    setErrorMessage,
+    setIsDelegated,
+    setIsLoading,
+    setPresets,
+    resetTransientState,
+  ]);
 
   async function refresh() {
     const { applicationId } = useAppStore.getState();
@@ -53,8 +70,10 @@ function App() {
     try {
       const { data: app } = await api.get(`/applications/${applicationId}`);
       setApplication(app);
+      setIsDelegated(Boolean(app.delegated_to_accountant));
     } catch (e) {
       console.error('Refresh failed', e);
+      setErrorMessage(getApiErrorMessage(e, 'Не удалось обновить заявку.'));
     }
   }
 
@@ -65,6 +84,32 @@ function App() {
 
       {/* Main content area */}
       <main className="max-w-[1680px] w-full mx-auto px-4 sm:px-6 py-5 flex-1">
+        {errorMessage && (
+          <div role="alert" className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="flex-1">{errorMessage}</p>
+            <button type="button" onClick={clearError} className="rounded-lg p-1 hover:bg-rose-100" aria-label="Закрыть сообщение об ошибке">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        <section aria-label="Проверка проекта за 3 минуты" className="mb-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#EF3124]">Стенд демонстрации · синтетические данные</p>
+              <h1 className="mt-1 text-lg font-bold text-neutral-900">Проверьте кредитный путь за 3 минуты</h1>
+            </div>
+            <p className="max-w-2xl text-xs leading-relaxed text-neutral-600">
+              Выберите сценарий в панели: Fast-track показывает сквозной путь до подписания и отдельной выдачи; «Контр-оффер» сравнивает условия; «Андеррайтинг» — запрос документа и повторный скоринг. Панель режимов — только инструмент этого демонстрационного стенда.
+            </p>
+          </div>
+          <ol className="mt-3 grid gap-2 text-xs text-neutral-700 sm:grid-cols-2 lg:grid-cols-4">
+            <li className="rounded-xl bg-neutral-50 p-3"><strong>1. Потребность</strong><span className="mt-1 block text-neutral-500">Калькулятор сохраняет выбранные параметры черновика.</span></li>
+            <li className="rounded-xl bg-neutral-50 p-3"><strong>2. Решение</strong><span className="mt-1 block text-neutral-500">Скоринг раскрывает факторы и ограничители.</span></li>
+            <li className="rounded-xl bg-neutral-50 p-3"><strong>3. Условия</strong><span className="mt-1 block text-neutral-500">Сравните сумму, платеж, ставку и обеспечение.</span></li>
+            <li className="rounded-xl bg-neutral-50 p-3"><strong>4. Исполнение</strong><span className="mt-1 block text-neutral-500">Подписание OTP и зачисление — отдельные шаги.</span></li>
+          </ol>
+        </section>
         {/* Loading overlay */}
         {isLoading && !application && (
           <div className="flex items-center justify-center min-h-[400px] animate-alfa-in">
@@ -72,6 +117,29 @@ function App() {
               <div className="w-9 h-9 border-2 border-neutral-200 border-t-[#EF3124] rounded-full animate-spin mx-auto" />
               <p className="text-xs font-medium text-neutral-500">Синхронизация конвейера...</p>
             </div>
+          </div>
+        )}
+
+        {/* API Unavailable fallback */}
+        {!application && !isLoading && (
+          <div className="rounded-3xl border border-neutral-200 bg-white p-8 text-center space-y-4 my-8 max-w-lg mx-auto shadow-xs">
+            <div className="w-12 h-12 bg-rose-50 text-[#EF3124] rounded-2xl flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-neutral-900">Кредитный конвейер недоступен</h2>
+              <p className="text-xs text-neutral-500 mt-1">
+                {errorMessage || 'Не удалось установить соединение с сервером конвейера. Убедитесь, что бэкенд запущен.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="bg-[#EF3124] hover:bg-[#D9261A] text-white py-2.5 px-6 rounded-full font-bold text-xs transition-colors inline-flex items-center gap-2 alfa-btn"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Повторить подключение</span>
+            </button>
           </div>
         )}
 

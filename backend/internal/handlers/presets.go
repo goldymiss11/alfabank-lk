@@ -101,12 +101,12 @@ func (h *Handler) ListApplications(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CreateApplication(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		CompanyID           *string  `json:"company_id"`
-		CompanyINN          *string  `json:"company_inn"`
-		ProductType         string   `json:"product_type"`
-		RequestedAmount     float64  `json:"requested_amount"`
-		RequestedTermMonths int      `json:"requested_term_months"`
-		GovProgramID        *string  `json:"gov_program_id"`
+		CompanyID           *string `json:"company_id"`
+		CompanyINN          *string `json:"company_inn"`
+		ProductType         string  `json:"product_type"`
+		RequestedAmount     float64 `json:"requested_amount"`
+		RequestedTermMonths int     `json:"requested_term_months"`
+		GovProgramID        *string `json:"gov_program_id"`
 	}
 	req.ProductType = "WORKING_CAPITAL_LOAN"
 	req.RequestedAmount = 1_000_000
@@ -133,12 +133,12 @@ func (h *Handler) CreateApplication(w http.ResponseWriter, r *http.Request) {
 		}
 		comp = store.Company{
 			ID: compID, INN: inn, OGRN: "1207700112233",
-			Name: "ООО «Предприятие " + inn + "»",
-			FullName: "Общество с ограниченной ответственностью «Предприятие " + inn + "»",
+			Name:      "ООО «Предприятие " + inn + "»",
+			FullName:  "Общество с ограниченной ответственностью «Предприятие " + inn + "»",
 			LegalForm: "OOO", OkvedMain: "46.90",
 			OkvedDescription: "Торговля оптовая", RegistrationDate: "2021-01-15",
 			AuthorizedCapital: func() *float64 { v := 100_000.0; return &v }(),
-			Address: "г. Москва", EmployeeCount: 10, IsActive: true,
+			Address:           "г. Москва", EmployeeCount: 10, IsActive: true,
 		}
 		h.DB.Companies[compID] = comp
 	}
@@ -159,8 +159,8 @@ func (h *Handler) CreateApplication(w http.ResponseWriter, r *http.Request) {
 		Offers:              []conveyor.CreditOffer{},
 		AuditLog: []store.AuditLogEntry{{
 			ID: newStoreUUID(), ApplicationID: appID,
-			ToState:     string(conveyor.StateDraft),
-			Trigger:     "CREATE", ActorType: string(conveyor.ActorClientOwner),
+			ToState: string(conveyor.StateDraft),
+			Trigger: "CREATE", ActorType: string(conveyor.ActorClientOwner),
 			ActorID:     &ownerID,
 			DetailsJSON: map[string]interface{}{"product_type": req.ProductType, "requested_amount": req.RequestedAmount},
 			CreatedAt:   createdAt,
@@ -175,5 +175,3 @@ func (h *Handler) CreateApplication(w http.ResponseWriter, r *http.Request) {
 		"id": appID, "state": string(conveyor.StateDraft), "created_at": createdAt,
 	})
 }
-
-

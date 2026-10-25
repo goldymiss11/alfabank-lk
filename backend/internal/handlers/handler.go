@@ -58,7 +58,18 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"detail": msg})
+	code := "REQUEST_FAILED"
+	switch status {
+	case http.StatusBadRequest:
+		code = "VALIDATION_ERROR"
+	case http.StatusNotFound:
+		code = "NOT_FOUND"
+	case http.StatusConflict:
+		code = "STATE_CONFLICT"
+	case http.StatusRequestEntityTooLarge:
+		code = "PAYLOAD_TOO_LARGE"
+	}
+	writeJSON(w, status, map[string]string{"detail": msg, "error_code": code})
 }
 
 func parseJSON(r *http.Request, v interface{}) error {
@@ -68,9 +79,8 @@ func parseJSON(r *http.Request, v interface{}) error {
 
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"status":              "ok",
-		"active_preset":       h.DB.ActivePresetID,
-		"applications_count":  len(h.DB.Applications),
+		"status":             "ok",
+		"active_preset":      h.DB.ActivePresetID,
+		"applications_count": len(h.DB.Applications),
 	})
 }
-

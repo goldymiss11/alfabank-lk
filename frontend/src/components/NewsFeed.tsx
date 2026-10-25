@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Landmark, Clock, Sparkles, Check, Loader2 } from 'lucide-react';
-import api from '../api/client';
+import { Landmark, Clock, Sparkles, Check, Loader2, AlertTriangle } from 'lucide-react';
+import api, { getApiErrorMessage } from '../api/client';
 import type { NewsItem } from '../types';
 
 interface Props {
@@ -97,17 +97,20 @@ function getFinancialTerms(item: NewsItem) {
 
 export function NewsFeed({ okved, applicationId, onProgramApplied, currentProgramId }: Props) {
   const [items, setItems] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(Boolean(okved));
   const [applying, setApplying] = useState<string | null>(null);
   const [applied, setApplied] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
+
+  const [prevOkved, setPrevOkved] = useState(okved);
+  if (prevOkved !== okved) {
+    setPrevOkved(okved);
+    setLoading(Boolean(okved));
+  }
 
   useEffect(() => {
-    if (!okved) {
-      setLoading(false);
-      return;
-    }
+    if (!okved) return;
     const prefix = okved.split('.')[0];
-    setLoading(true);
     api.get<{ items: NewsItem[] }>(`/news?okved_prefix=${prefix}`)
       .then(({ data }) => setItems(data.items ?? []))
       .catch(() => setItems([]))
@@ -117,10 +120,13 @@ export function NewsFeed({ okved, applicationId, onProgramApplied, currentProgra
   async function applyProgram(newsItemId: string) {
     if (!applicationId) return;
     setApplying(newsItemId);
+    setError('');
     try {
       await api.post(`/applications/${applicationId}/apply-program`, { news_item_id: newsItemId });
       setApplied(newsItemId);
       onProgramApplied();
+    } catch (e) {
+      setError(getApiErrorMessage(e, 'Не удалось применить программу господдержки.'));
     } finally {
       setApplying(null);
     }
@@ -152,6 +158,13 @@ export function NewsFeed({ okved, applicationId, onProgramApplied, currentProgra
           </div>
         )}
       </div>
+
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Состояние загрузки (скелетоны) */}
       {loading ? (

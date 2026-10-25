@@ -10,8 +10,9 @@ import {
   SlidersHorizontal,
   Check,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
-import api from '../api/client';
+import api, { getApiErrorMessage } from '../api/client';
 import { formatRub, PRODUCT_LABELS } from '../utils';
 import type { AiResponse, ProductType } from '../types';
 
@@ -66,11 +67,13 @@ export function AiAdvisorWidget({ applicationId, onSuggestProduct }: Props) {
   const [response, setResponse] = useState<AiResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [error, setError] = useState('');
 
   async function sendMessage(msg: string) {
     if (!msg.trim()) return;
     setLoading(true);
     setMessage('');
+    setError('');
     try {
       const { data } = await api.post<AiResponse>('/ai/recommend', {
         message: msg,
@@ -80,6 +83,8 @@ export function AiAdvisorWidget({ applicationId, onSuggestProduct }: Props) {
       if (data.product && onSuggestProduct) {
         onSuggestProduct(data.product, data.amount, data.term);
       }
+    } catch (e) {
+      setError(getApiErrorMessage(e, 'Не удалось получить рекомендацию консультанта.'));
     } finally {
       setLoading(false);
     }
@@ -109,6 +114,13 @@ export function AiAdvisorWidget({ applicationId, onSuggestProduct }: Props) {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Сетка типовых бизнес-ситуаций (4 карточки) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

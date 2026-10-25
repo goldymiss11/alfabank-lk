@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -35,6 +36,10 @@ func (h *Handler) ApplicationsSubRouter(w http.ResponseWriter, r *http.Request) 
 	switch {
 	case subPath == "" && r.Method == http.MethodGet:
 		h.GetApplication(w, r, appID)
+	case subPath == "" && r.Method == http.MethodPatch:
+		h.UpdateApplication(w, r, appID)
+	case subPath == "":
+		writeError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
 	case subPath == "transition" && r.Method == http.MethodPost:
 		h.Transition(w, r, appID)
 	case subPath == "enrich" && r.Method == http.MethodPost:
@@ -53,6 +58,8 @@ func (h *Handler) ApplicationsSubRouter(w http.ResponseWriter, r *http.Request) 
 		h.DelegateToAccountant(w, r, appID)
 	case subPath == "sign" && r.Method == http.MethodPost:
 		h.SignContract(w, r, appID)
+	case subPath == "disburse" && r.Method == http.MethodPost:
+		h.Disburse(w, r, appID)
 	case subPath == "apply-program" && r.Method == http.MethodPost:
 		h.ApplyGovProgram(w, r, appID)
 	default:
@@ -66,6 +73,83 @@ func (h *Handler) GetApplication(w http.ResponseWriter, r *http.Request, appID s
 		writeError(w, http.StatusNotFound, "Заявка не найдена")
 		return
 	}
+	writeJSON(w, http.StatusOK, app)
+}
+
+func (h *Handler) UpdateApplication(w http.ResponseWriter, r *http.Request, appID string) {
+	var req struct {
+		ProductType         *string  `json:"product_type"`
+		RequestedAmount     *float64 `json:"requested_amount"`
+		RequestedTermMonths *int     `json:"requested_term_months"`
+		GovProgramID        *string  `json:"gov_program_id"`
+	}
+	if err := parseJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "Ошибка разбора JSON: "+err.Error())
+		return
+	}
+
+	app, ok := h.DB.GetApplication(appID)
+	if !ok {
+		writeError(w, http.StatusNotFound, "Заявка не найдена")
+		return
+	}
+	if app.State != conveyor.StateDraft {
+		writeError(w, http.StatusConflict, "Изменять параметры можно только в статусе «Черновик»")
+		return
+	}
+	if req.ProductType == nil && req.RequestedAmount == nil && req.RequestedTermMonths == nil && req.GovProgramID == nil {
+		writeError(w, http.StatusBadRequest, "Не передан ни один параметр для обновления")
+		return
+	}
+
+	if req.ProductType != nil {
+		product := conveyor.ProductType(*req.ProductType)
+		if _, exists := conveyor.ProductCatalog[product]; !exists {
+			writeError(w, http.StatusBadRequest, "Неизвестный кредитный продукт")
+			return
+		}
+		app.ProductType = string(product)
+	}
+	if req.RequestedAmount != nil {
+		if math.IsNaN(*req.RequestedAmount) || math.IsInf(*req.RequestedAmount, 0) || *req.RequestedAmount <= 0 {
+			writeError(w, http.StatusBadRequest, "Сумма должна быть положительным числом")
+			return
+		}
+		app.RequestedAmount = *req.RequestedAmount
+	}
+	if req.RequestedTermMonths != nil {
+		if *req.RequestedTermMonths < 1 || *req.RequestedTermMonths > 120 {
+			writeError(w, http.StatusBadRequest, "Срок должен быть от 1 до 120 месяцев")
+			return
+		}
+		app.RequestedTermMonths = *req.RequestedTermMonths
+	}
+	if req.GovProgramID != nil {
+		if *req.GovProgramID == "" {
+			app.GovProgramID = nil
+		} else {
+			programID := *req.GovProgramID
+			app.GovProgramID = &programID
+		}
+	}
+
+	app.ScoringResult = nil
+	app.DecisionResult = nil
+	app.Offers = []conveyor.CreditOffer{}
+	app.RehabilitationPlan = nil
+	details := map[string]interface{}{
+		"product_type":          app.ProductType,
+		"requested_amount":      app.RequestedAmount,
+		"requested_term_months": app.RequestedTermMonths,
+	}
+	previousState := string(app.State)
+	app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
+		ID: newStoreUUID(), ApplicationID: appID, FromState: &previousState,
+		ToState: string(app.State), Trigger: "UPDATE_DRAFT", ActorType: string(conveyor.ActorClientOwner),
+		ActorID: &app.OwnerUserID, DetailsJSON: details, CreatedAt: nowStr(),
+	})
+	app.UpdatedAt = nowStr()
+	h.DB.SetApplication(app)
 	writeJSON(w, http.StatusOK, app)
 }
 
@@ -92,6 +176,10 @@ func (h *Handler) Transition(w http.ResponseWriter, r *http.Request, appID strin
 	}
 
 	trigger := conveyor.Trigger(req.Trigger)
+	if trigger == conveyor.TriggerSignContract {
+		writeError(w, http.StatusBadRequest, "Для подписания договора используйте endpoint /sign с OTP-кодом")
+		return
+	}
 	if !conveyor.CanTransition(app.State, trigger) {
 		allowed := conveyor.AvailableTriggers(app.State)
 		var allowedStrs []string
@@ -138,11 +226,11 @@ func (h *Handler) Transition(w http.ResponseWriter, r *http.Request, appID strin
 	h.DB.SetApplication(app)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"application_id":      appID,
-		"previous_state":      string(prevState),
-		"new_state":           string(newState),
-		"trigger":             req.Trigger,
-		"audit_log_entry_id":  entryID,
+		"application_id":     appID,
+		"previous_state":     string(prevState),
+		"new_state":          string(newState),
+		"trigger":            req.Trigger,
+		"audit_log_entry_id": entryID,
 	})
 }
 
@@ -172,10 +260,10 @@ func (h *Handler) Enrich(w http.ResponseWriter, r *http.Request, appID string) {
 
 	snapshotID := newStoreUUID()
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"application_id":       appID,
-		"sources_fetched":      []string{"egrul", "fns", "bki", "alfa_accounts"},
+		"application_id":         appID,
+		"sources_fetched":        []string{"egrul", "fns", "bki", "alfa_accounts"},
 		"enrichment_snapshot_id": snapshotID,
-		"enrichment":           bundle,
+		"enrichment":             bundle,
 	})
 }
 
@@ -309,10 +397,10 @@ func (h *Handler) CreateClarification(w http.ResponseWriter, r *http.Request, ap
 		app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
 			ID: newStoreUUID(), ApplicationID: appID,
 			FromState: &prevStr, ToState: string(conveyor.StateNeedClarification),
-			Trigger: string(conveyor.TriggerRequestClarification),
-			ActorType: string(conveyor.ActorBankUnderwriter),
+			Trigger:     string(conveyor.TriggerRequestClarification),
+			ActorType:   string(conveyor.ActorBankUnderwriter),
 			DetailsJSON: map[string]interface{}{"clarification_id": clarifID, "question": req.QuestionText},
-			CreatedAt: nowStr(),
+			CreatedAt:   nowStr(),
 		})
 	}
 	app.UpdatedAt = nowStr()
@@ -332,8 +420,14 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request, appID s
 		return
 	}
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		writeError(w, http.StatusBadRequest, "Ошибка разбора формы: "+err.Error())
+	const maxUploadSize = 25 << 20
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(2 << 20); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			writeError(w, http.StatusRequestEntityTooLarge, "Файл превышает ограничение 25 МБ")
+		} else {
+			writeError(w, http.StatusBadRequest, "Ошибка разбора формы: "+err.Error())
+		}
 		return
 	}
 
@@ -348,13 +442,23 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request, appID s
 	if docType == "" {
 		docType = "OTHER"
 	}
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowedExtensions := map[string]bool{".pdf": true, ".png": true, ".jpg": true, ".jpeg": true, ".xlsx": true, ".xls": true}
+	if !allowedExtensions[ext] {
+		writeError(w, http.StatusBadRequest, "Поддерживаются только PDF, PNG, JPG и XLSX")
+		return
+	}
+	if header.Size > maxUploadSize {
+		writeError(w, http.StatusRequestEntityTooLarge, "Файл превышает ограничение 25 МБ")
+		return
+	}
 	uploadedBy := r.FormValue("uploaded_by")
 	if uploadedBy == "" {
 		uploadedBy = "CLIENT_OWNER"
 	}
 
 	docID := newStoreUUID()
-	safeFilename := docID + "_" + header.Filename
+	safeFilename := docID + ext
 	filePath := filepath.Join(h.UploadDir, safeFilename)
 
 	dst, err := os.Create(filePath)
@@ -363,7 +467,12 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request, appID s
 		return
 	}
 	defer dst.Close()
-	size, _ := io.Copy(dst, file)
+	size, err := io.Copy(dst, http.MaxBytesReader(w, file, maxUploadSize))
+	if err != nil {
+		_ = os.Remove(filePath)
+		writeError(w, http.StatusRequestEntityTooLarge, "Файл превышает ограничение 25 МБ")
+		return
+	}
 
 	docEntry := store.DocumentEntry{
 		DocumentID: docID,
@@ -428,10 +537,11 @@ func (h *Handler) SignContract(w http.ResponseWriter, r *http.Request, appID str
 	var req struct {
 		OTPCode string `json:"otp_code"`
 	}
-	req.OTPCode = "1234"
-	_ = parseJSON(r, &req)
-
-	if len(req.OTPCode) < 4 {
+	if err := parseJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "Ошибка разбора JSON: "+err.Error())
+		return
+	}
+	if req.OTPCode != "1234" {
 		writeError(w, http.StatusBadRequest, "Неверный OTP-код подтверждения")
 		return
 	}
@@ -441,38 +551,85 @@ func (h *Handler) SignContract(w http.ResponseWriter, r *http.Request, appID str
 		writeError(w, http.StatusNotFound, "Заявка не найдена")
 		return
 	}
+	if !conveyor.CanTransition(app.State, conveyor.TriggerSignContract) {
+		writeError(w, http.StatusConflict, fmt.Sprintf("Подписание недоступно из текущего состояния '%s'", app.State))
+		return
+	}
 
-	oldState := string(app.State)
-	signedState := string(conveyor.StateContractSigned)
-	fundedState := string(conveyor.StateFunded)
+	oldState := app.State
+	newState, err := conveyor.Transition(oldState, conveyor.TriggerSignContract)
+	if err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
 	nowISO := nowStr()
-
-	app.State = conveyor.StateFunded
-
+	oldStateStr := string(oldState)
+	app.State = newState
+	signedAt := nowISO
+	app.SignedAt = &signedAt
 	app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
 		ID: newStoreUUID(), ApplicationID: appID,
-		FromState: &oldState, ToState: signedState,
+		FromState: &oldStateStr, ToState: string(newState),
 		Trigger: string(conveyor.TriggerSignContract), ActorType: string(conveyor.ActorClientOwner),
-		ActorID: &app.OwnerUserID,
+		ActorID:     &app.OwnerUserID,
 		DetailsJSON: map[string]interface{}{"otp_code_masked": "****", "signed_at": nowISO},
 		CreatedAt:   nowISO,
 	})
-
-	app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
-		ID: newStoreUUID(), ApplicationID: appID,
-		FromState: &signedState, ToState: fundedState,
-		Trigger: string(conveyor.TriggerDisburse), ActorType: string(conveyor.ActorSystemConveyor),
-		DetailsJSON: map[string]interface{}{"disbursed_at": nowISO, "disbursement_status": "EXECUTED"},
-		CreatedAt:   nowISO,
-	})
-
 	app.UpdatedAt = nowISO
 	h.DB.SetApplication(app)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"application_id": appID,
-		"state":          fundedState,
-		"message":        "Кредитный договор успешно подписан ПЭП. Финансирование зачислено на расчётный счёт.",
+		"state":          string(newState),
+		"message":        "Кредитный договор успешно подписан ПЭП. Ожидается зачисление финансирования.",
+	})
+}
+
+func (h *Handler) Disburse(w http.ResponseWriter, r *http.Request, appID string) {
+	app, ok := h.DB.GetApplication(appID)
+	if !ok {
+		writeError(w, http.StatusNotFound, "Заявка не найдена")
+		return
+	}
+	if app.State == conveyor.StateFunded {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"application_id": appID,
+			"state":          string(conveyor.StateFunded),
+			"idempotent":     true,
+			"message":        "Финансирование уже было зачислено",
+		})
+		return
+	}
+	if !conveyor.CanTransition(app.State, conveyor.TriggerDisburse) {
+		writeError(w, http.StatusConflict, fmt.Sprintf("Выдача финансирования недоступна из текущего состояния '%s'", app.State))
+		return
+	}
+
+	previousState := app.State
+	newState, err := conveyor.Transition(previousState, conveyor.TriggerDisburse)
+	if err != nil {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	disbursedAt := nowStr()
+	previousStateString := string(previousState)
+	app.State = newState
+	app.DisbursedAt = &disbursedAt
+	app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
+		ID: newStoreUUID(), ApplicationID: appID,
+		FromState: &previousStateString, ToState: string(newState),
+		Trigger: string(conveyor.TriggerDisburse), ActorType: string(conveyor.ActorSystemConveyor),
+		DetailsJSON: map[string]interface{}{"disbursed_at": disbursedAt, "disbursement_status": "EXECUTED"},
+		CreatedAt:   disbursedAt,
+	})
+	app.UpdatedAt = disbursedAt
+	h.DB.SetApplication(app)
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"application_id": appID,
+		"state":          string(newState),
+		"idempotent":     false,
+		"message":        "Финансирование зачислено на расчётный счёт",
 	})
 }
 
@@ -542,11 +699,9 @@ func (h *Handler) ApplyGovProgram(w http.ResponseWriter, r *http.Request, appID 
 	h.DB.SetApplication(app)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"application_id": appID,
-		"gov_program_id": program.ID,
+		"application_id":  appID,
+		"gov_program_id":  program.ID,
 		"rate_adjustment": rateAdj,
-		"message":        "Программа «" + program.Title + "» успешно подключена к заявке",
+		"message":         "Программа «" + program.Title + "» успешно подключена к заявке",
 	})
 }
-
-

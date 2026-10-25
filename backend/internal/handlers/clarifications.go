@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
 
@@ -51,6 +52,18 @@ func (h *Handler) RespondClarification(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 
+	app, ok := h.DB.GetApplication(clarif.ApplicationID)
+	if !ok {
+		writeError(w, http.StatusNotFound, "Заявка для уточнения не найдена")
+		return
+	}
+
+	nextState, err := conveyor.Transition(app.State, conveyor.TriggerClientResponded)
+	if err != nil {
+		writeError(w, http.StatusConflict, "Ответ на уточнение недоступен из состояния '"+string(app.State)+"'")
+		return
+	}
+
 	clarif.Status = "RESPONDED"
 	clarif.ResponseText = &req.ResponseText
 	if req.DocumentIDs != nil {
@@ -60,35 +73,29 @@ func (h *Handler) RespondClarification(w http.ResponseWriter, r *http.Request, c
 	}
 	h.DB.SetClarification(clarif)
 
-	app, ok := h.DB.GetApplication(clarif.ApplicationID)
-	if ok {
-		oldState := string(app.State)
-		app.State = conveyor.StateResubmitted
-		app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
-			ID: newStoreUUID(), ApplicationID: app.ID,
-			FromState: &oldState, ToState: string(conveyor.StateResubmitted),
-			Trigger: string(conveyor.TriggerClientResponded), ActorType: string(conveyor.ActorClientOwner),
-			ActorID: &app.OwnerUserID,
-			DetailsJSON: map[string]interface{}{
-				"clarification_id": clarifID, "response": req.ResponseText,
-			},
-			CreatedAt: nowStr(),
-		})
+	oldState := string(app.State)
+	app.State = nextState
+	app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
+		ID: newStoreUUID(), ApplicationID: app.ID,
+		FromState: &oldState, ToState: string(nextState),
+		Trigger: string(conveyor.TriggerClientResponded), ActorType: string(conveyor.ActorClientOwner),
+		ActorID: &app.OwnerUserID,
+		DetailsJSON: map[string]interface{}{
+			"clarification_id": clarifID, "response": req.ResponseText,
+		},
+		CreatedAt: nowStr(),
+	})
 
-		for i, c := range app.Clarifications {
-			if c.ID == clarifID {
-				app.Clarifications[i] = clarif
-				break
-			}
+	for i, c := range app.Clarifications {
+		if c.ID == clarifID {
+			app.Clarifications[i] = clarif
+			break
 		}
-		app.UpdatedAt = nowStr()
-		h.DB.SetApplication(app)
 	}
+	app.UpdatedAt = nowStr()
+	h.DB.SetApplication(app)
 
-	newState := ""
-	if ok {
-		newState = string(app.State)
-	}
+	newState := string(app.State)
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"clarification_id":      clarifID,
 		"status":                "RESPONDED",
@@ -167,9 +174,9 @@ func (h *Handler) GetUnderwriterQueue(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UnderwriterDecide(w http.ResponseWriter, r *http.Request, appID string) {
 	var req struct {
-		Action         string                   `json:"action"`
-		Comment        string                   `json:"comment"`
-		OverrideOffers []map[string]interface{} `json:"override_offers"`
+		Action         string                 `json:"action"`
+		Comment        string                 `json:"comment"`
+		OverrideOffers []conveyor.CreditOffer `json:"override_offers"`
 	}
 	if err := parseJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "Ошибка разбора JSON")
@@ -192,24 +199,53 @@ func (h *Handler) UnderwriterDecide(w http.ResponseWriter, r *http.Request, appI
 		"REQUEST_CLARIFICATION": {conveyor.TriggerRequestClarification, conveyor.StateNeedClarification},
 	}
 
-	action := strings.ToUpper(req.Action)
+	action := strings.ToUpper(strings.TrimSpace(req.Action))
 	mapping, valid := actionMap[action]
 	if !valid {
 		writeError(w, http.StatusBadRequest, "Недопустимое действие '"+action+"'. Допустимые: APPROVE, REJECT, COUNTER_OFFER, REQUEST_CLARIFICATION")
 		return
 	}
+	if !conveyor.CanTransition(app.State, mapping.trigger) {
+		writeError(w, http.StatusConflict, "Действие недоступно из состояния '"+string(app.State)+"'")
+		return
+	}
+
+	offers := app.Offers
+	if action == "APPROVE" || action == "COUNTER_OFFER" {
+		if req.OverrideOffers != nil {
+			validatedOffers, err := validateOverrideOffers(req.OverrideOffers, app.ProductType)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+			offers = validatedOffers
+		}
+		if len(offers) == 0 {
+			writeError(w, http.StatusBadRequest, "Для решения необходимо указать хотя бы один оффер")
+			return
+		}
+	}
 
 	oldState := string(app.State)
 	entryID := newStoreUUID()
-
 	app.State = mapping.state
+	if action == "APPROVE" || action == "COUNTER_OFFER" {
+		app.Offers = offers
+		if app.DecisionResult == nil {
+			app.DecisionResult = &conveyor.DecisionResult{}
+		}
+		app.DecisionResult.Offers = offers
+	}
+
+	details := map[string]interface{}{"comment": req.Comment, "action": action}
+	if action == "APPROVE" || action == "COUNTER_OFFER" {
+		details["offers"] = offers
+	}
 	app.AuditLog = append(app.AuditLog, store.AuditLogEntry{
 		ID: entryID, ApplicationID: appID,
 		FromState: &oldState, ToState: string(mapping.state),
 		Trigger: string(mapping.trigger), ActorType: string(conveyor.ActorBankUnderwriter),
-		ActorID: strP("underwriter_user"),
-		DetailsJSON: map[string]interface{}{"comment": req.Comment, "action": action},
-		CreatedAt:   nowStr(),
+		ActorID: strP("underwriter_user"), DetailsJSON: details, CreatedAt: nowStr(),
 	})
 	app.UpdatedAt = nowStr()
 	h.DB.SetApplication(app)
@@ -237,7 +273,47 @@ func (h *Handler) UnderwriterDecide(w http.ResponseWriter, r *http.Request, appI
 		"new_state":          string(mapping.state),
 		"audit_log_entry_id": entryID,
 		"action":             action,
+		"offers":             offers,
 	})
+}
+
+func validateOverrideOffers(offers []conveyor.CreditOffer, applicationProduct string) ([]conveyor.CreditOffer, error) {
+	if len(offers) == 0 {
+		return nil, fmt.Errorf("override_offers не должен быть пустым")
+	}
+
+	validated := make([]conveyor.CreditOffer, len(offers))
+	for i, offer := range offers {
+		if offer.ProductType == "" {
+			offer.ProductType = conveyor.ProductType(applicationProduct)
+		}
+		if string(offer.ProductType) != applicationProduct {
+			return nil, fmt.Errorf("override_offers[%d]: продукт должен совпадать с заявкой", i)
+		}
+		if !isFinitePositive(offer.ApprovedAmount) {
+			return nil, fmt.Errorf("override_offers[%d]: сумма должна быть положительным числом", i)
+		}
+		if !isFinite(offer.AnnualRatePct) || offer.AnnualRatePct < 0 || offer.AnnualRatePct > 100 {
+			return nil, fmt.Errorf("override_offers[%d]: ставка должна быть от 0 до 100 процентов", i)
+		}
+		if offer.TermMonths < 1 || offer.TermMonths > 120 {
+			return nil, fmt.Errorf("override_offers[%d]: срок должен быть от 1 до 120 месяцев", i)
+		}
+		if !isFinitePositive(offer.MonthlyPayment) {
+			return nil, fmt.Errorf("override_offers[%d]: ежемесячный платёж должен быть положительным числом", i)
+		}
+		offer.VariantIndex = i + 1
+		validated[i] = offer
+	}
+	return validated, nil
+}
+
+func isFinite(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0)
+}
+
+func isFinitePositive(value float64) bool {
+	return isFinite(value) && value > 0
 }
 
 func (h *Handler) GetNews(w http.ResponseWriter, r *http.Request) {
@@ -321,19 +397,19 @@ func (h *Handler) MocksRouter(w http.ResponseWriter, r *http.Request) {
 				"inn": matched.Company.INN, "ogrn": matched.Company.OGRN,
 				"name": matched.Company.Name, "full_name": matched.Company.FullName,
 				"legal_form": matched.Company.LegalForm, "okved_main": matched.Company.OkvedMain,
-				"registration_date": matched.Company.RegistrationDate,
+				"registration_date":  matched.Company.RegistrationDate,
 				"authorized_capital": matched.Company.AuthorizedCapital,
-				"employee_count": matched.Company.EmployeeCount,
-				"is_liquidating": matched.Enrichment.Egrul.IsLiquidating,
-				"founders": matched.Enrichment.Egrul.Founders,
+				"employee_count":     matched.Company.EmployeeCount,
+				"is_liquidating":     matched.Enrichment.Egrul.IsLiquidating,
+				"founders":           matched.Enrichment.Egrul.Founders,
 			})
 		} else {
 			writeJSON(w, http.StatusOK, map[string]interface{}{
 				"inn": inn, "ogrn": "1207700" + safeSuffix(inn, 6),
-				"name": "ООО «Партнёр-" + safeSuffix(inn, 4) + "»",
-				"full_name": "Общество с ограниченной ответственностью «Партнёр-" + safeSuffix(inn, 4) + "»",
+				"name":       "ООО «Партнёр-" + safeSuffix(inn, 4) + "»",
+				"full_name":  "Общество с ограниченной ответственностью «Партнёр-" + safeSuffix(inn, 4) + "»",
 				"legal_form": legalFormForINN(inn), "okved_main": "46.90",
-				"registration_date": "2020-03-10",
+				"registration_date":  "2020-03-10",
 				"authorized_capital": 50_000.0, "employee_count": 15,
 				"is_liquidating": false, "founders": []map[string]interface{}{{"name": "Петров А.А.", "share_pct": 100}},
 			})
@@ -384,4 +460,3 @@ func fmt_sprintf_zero(v int) string {
 			strings.TrimRight(strings.TrimRight(
 				string(rune('0'+v)), ""), ""), ".", "", 1), ",", "", 1), "0"), ".")
 }
-

@@ -110,9 +110,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/Application'
 
+    patch:
+      summary: Обновление параметров черновика заявки
+      description: Доступно только в статусе DRAFT. Валидирует лимиты и тип продукта, инвалидирует устаревший скоринг.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_type: { type: string, enum: [OVERDRAFT, WORKING_CAPITAL_LOAN, REVOLVING_LINE_VKL, INVESTMENT_LOAN] }
+                requested_amount: { type: number, example: 1000000 }
+                requested_term_months: { type: integer, example: 12 }
+                gov_program_id: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Параметры черновика успешно сохранены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: Некорректные параметры или тип продукта
+        '404':
+          description: Заявка не найдена
+        '409':
+          description: Заявка не находится в статусе DRAFT
+
   /api/applications/{id}/transition:
     post:
       summary: Выполнение перехода в графе состояний (FSM)
+      description: Для триггера SIGN_CONTRACT необходимо использовать endpoint /api/applications/{id}/sign с OTP-кодом; прямой переход через этот endpoint запрещен.
       parameters:
         - name: id
           in: path
@@ -126,14 +160,13 @@ paths:
               type: object
               required: [trigger]
               properties:
-                trigger: { type: string }
+                trigger: { type: string, enum: [SUBMIT, AUTO_VALIDATE, VALIDATION_PASSED, VALIDATION_FAILED, ENRICHMENT_COMPLETE, AUTO_APPROVE, COUNTER_OFFER_GENERATED, NEEDS_MANUAL_REVIEW, AUTO_REJECT, UNDERWRITER_APPROVE, UNDERWRITER_REJECT, REQUEST_CLARIFICATION, UNDERWRITER_COUNTER_OFFER, CLIENT_RESPONDED, RE_SCORE, ACCEPT_OFFER, DISBURSE, CANCEL, OFFERS_EXPIRED] }
                 actor_type: { type: string }
                 actor_id: { type: string, nullable: true }
                 payload:
                   type: object
                   properties:
                     selected_offer_variant: { type: integer }
-                    otp_code: { type: string }
       responses:
         '200':
           description: Переход успешно выполнен
@@ -260,7 +293,56 @@ paths:
                 otp_code: { type: string, example: "1234" }
       responses:
         '200':
-          description: Договор подписан, финансирование зачислено (FUNDED)
+          description: Договор подписан, заявка переведена в CONTRACT_SIGNED; финансирование выполняется отдельным переходом DISBURSE
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [application_id, state, message]
+                properties:
+                  application_id: { type: string }
+                  state: { type: string, example: CONTRACT_SIGNED }
+                  message: { type: string }
+        '400':
+          description: Некорректный JSON или неверный OTP-код
+        '404':
+          description: Заявка не найдена
+        '409':
+          description: Подписание недоступно из текущего состояния
+
+  /api/applications/{id}/disburse:
+    post:
+      summary: Выдача кредитных средств (идемпотентная операция)
+      description: Выполняет зачисление средств на расчетный счет. Доступно только в статусе CONTRACT_SIGNED. Повторные вызовы идемпотентны.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actor_type: { type: string, example: "SYSTEM_CONVEYOR" }
+      responses:
+        '200':
+          description: Средства успешно зачислены, статус переведён в FUNDED
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  application_id: { type: string }
+                  state: { type: string, example: FUNDED }
+                  disbursed_at: { type: string, format: date-time }
+                  message: { type: string }
+        '404':
+          description: Заявка не найдена
+        '409':
+          description: Заявка не находится в статусе CONTRACT_SIGNED
 
   /api/applications/{id}/delegate:
     post:
@@ -328,9 +410,34 @@ paths:
               properties:
                 action: { type: string, enum: [APPROVE, REJECT, COUNTER_OFFER, REQUEST_CLARIFICATION] }
                 comment: { type: string }
+                override_offers:
+                  type: array
+                  description: Офферы, заданные андеррайтером для APPROVE или COUNTER_OFFER
+                  items:
+                    $ref: '#/components/schemas/CreditOffer'
       responses:
         '200':
           description: Решение зафиксировано
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [application_id, new_state, audit_log_entry_id, action, offers]
+                properties:
+                  application_id: { type: string }
+                  new_state: { type: string }
+                  audit_log_entry_id: { type: string }
+                  action: { type: string }
+                  offers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CreditOffer'
+        '400':
+          description: Некорректное действие или параметры оффера
+        '404':
+          description: Заявка не найдена
+        '409':
+          description: Действие недоступно из текущего состояния
 
   /api/news:
     get:
@@ -343,6 +450,78 @@ paths:
         '200':
           description: Подходящие программы субсидий и гарантий
 
+  /api/applications/{id}/audit:
+    get:
+      summary: Журнал событий заявки
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Записи аудита заявки
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [audit_log]
+                properties:
+                  audit_log:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLogEntry'
+        '404':
+          description: Заявка не найдена
+
+  /api/ai/recommend:
+    post:
+      summary: Алиас консультации AI-ассистента
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIChatRequest'
+      responses:
+        '200':
+          description: Рекомендации и готовые подсказки
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatResponse'
+        '400':
+          description: Некорректный запрос или пустое сообщение
+
+  /api/mocks/{service}/{inn}:
+    get:
+      summary: Синтетический ответ mock-сервиса
+      description: "Для service=news параметр inn фактически трактуется как префикс ОКВЭД."
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema: { type: string, enum: [egrul, fns, bki, news] }
+        - name: inn
+          in: path
+          required: true
+          description: ИНН для egrul/fns/bki; префикс ОКВЭД для news
+          schema: { type: string }
+      responses:
+        '200':
+          description: Данные выбранного mock-сервиса
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/MockEgrulResponse'
+                  - $ref: '#/components/schemas/MockObjectResponse'
+                  - $ref: '#/components/schemas/MockNewsResponse'
+        '400':
+          description: Не указан сервис или параметр пути
+        '404':
+          description: Mock-сервис не найден
+
   /api/ai/chat:
     post:
       summary: Консультация с AI-ассистентом
@@ -351,17 +530,108 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [message]
-              properties:
-                message: { type: string }
-                application_id: { type: string, nullable: true }
+              $ref: '#/components/schemas/AIChatRequest'
       responses:
         '200':
-          description: Рекомендации и готовые подсказки
+          description: Ответ ассистента и готовые подсказки
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatResponse'
+        '400':
+          description: Некорректный запрос или пустое сообщение
 
 components:
   schemas:
+    AuditLogEntry:
+      type: object
+      required: [id, application_id, from_state, to_state, trigger, actor_type, actor_id, details_json, created_at]
+      properties:
+        id: { type: string }
+        application_id: { type: string }
+        from_state: { type: string, nullable: true }
+        to_state: { type: string }
+        trigger: { type: string }
+        actor_type: { type: string }
+        actor_id: { type: string, nullable: true }
+        details_json: { type: object, additionalProperties: true }
+        created_at: { type: string }
+
+    AIChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1 }
+        application_id: { type: string, nullable: true }
+
+    AIChatResponse:
+      type: object
+      required: [response, source, suggestions]
+      properties:
+        response: { type: string }
+        source: { type: string, example: fallback }
+        suggestions:
+          type: array
+          items: { type: string }
+        context_hint: { type: string }
+
+    MockEgrulResponse:
+      type: object
+      properties:
+        inn: { type: string }
+        ogrn: { type: string }
+        name: { type: string }
+        full_name: { type: string }
+        legal_form: { type: string }
+        okved_main: { type: string }
+        registration_date: { type: string }
+        authorized_capital: { type: number }
+        employee_count: { type: integer }
+        is_liquidating: { type: boolean }
+        founders:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              share_pct: { type: number }
+
+    MockObjectResponse:
+      type: object
+      description: Схема синтетических ответов FNS/BKI; поля определяются соответствующим enrichment-контрактом.
+      additionalProperties: true
+
+    MockNewsResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    CreditOffer:
+      type: object
+      required:
+        - variant_index
+        - product_type
+        - approved_amount
+        - term_months
+        - annual_rate_pct
+        - monthly_payment
+        - collateral_required
+        - description
+      properties:
+        variant_index: { type: integer, minimum: 1 }
+        product_type: { type: string }
+        approved_amount: { type: number, exclusiveMinimum: 0 }
+        term_months: { type: integer, minimum: 1, maximum: 120 }
+        annual_rate_pct: { type: number, minimum: 0, maximum: 100 }
+        monthly_payment: { type: number, exclusiveMinimum: 0 }
+        collateral_required: { type: boolean }
+        collateral_description: { type: string, nullable: true }
+        description: { type: string }
+
     Preset:
       type: object
       properties:

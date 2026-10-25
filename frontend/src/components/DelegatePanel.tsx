@@ -10,8 +10,9 @@ import {
   X,
   ShieldCheck,
   Check,
+  AlertTriangle,
 } from 'lucide-react';
-import api from '../api/client';
+import api, { getApiErrorMessage } from '../api/client';
 import { useAppStore } from '../store/appStore';
 
 interface Props {
@@ -23,9 +24,11 @@ export function DelegatePanel({ applicationId, onDelegated }: Props) {
   const { isDelegated, setIsDelegated, setUserRole } = useAppStore();
   const [done, setDone] = useState(isDelegated);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function delegate() {
     setLoading(true);
+    setError('');
     try {
       await api.post(`/applications/${applicationId}/delegate`, {
         accountant_name: 'Елена Кузнецова',
@@ -35,7 +38,7 @@ export function DelegatePanel({ applicationId, onDelegated }: Props) {
       setIsDelegated(true);
       onDelegated();
     } catch (err) {
-      console.error('Failed to delegate to accountant:', err);
+      setError(getApiErrorMessage(err, 'Не удалось делегировать задачу бухгалтеру.'));
     } finally {
       setLoading(false);
     }
@@ -73,7 +76,14 @@ export function DelegatePanel({ applicationId, onDelegated }: Props) {
   }
 
   return (
-    <div className="rounded-2xl bg-indigo-50/50 border border-indigo-100 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 alfa-card-hover">
+    <div className="space-y-2">
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      <div className="rounded-2xl bg-indigo-50/50 border border-indigo-100 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 alfa-card-hover">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
           <UserPlus className="w-5 h-5" />
@@ -105,6 +115,7 @@ export function DelegatePanel({ applicationId, onDelegated }: Props) {
           </>
         )}
       </button>
+      </div>
     </div>
   );
 }
@@ -123,6 +134,7 @@ export function AccountantTaskPanel({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [lastUploadedName, setLastUploadedName] = useState<string>('');
+  const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const docTypes = [
@@ -159,6 +171,7 @@ export function AccountantTaskPanel({
 
   async function handleSend() {
     setUploading(true);
+    setError('');
     try {
       if (selectedFiles.length > 0) {
         // Upload user selected files
@@ -196,7 +209,7 @@ export function AccountantTaskPanel({
       setDone(true);
       onUploaded();
     } catch (err) {
-      console.error('Failed to upload accountant documents:', err);
+      setError(getApiErrorMessage(err, 'Не удалось отправить документы в банк.'));
     } finally {
       setUploading(false);
     }
@@ -271,6 +284,13 @@ export function AccountantTaskPanel({
           <span>Ожидает загрузки документов</span>
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <div>
         <h3 className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight">
