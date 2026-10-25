@@ -7,8 +7,6 @@ import (
 	"alfabank-credit-conveyor/internal/conveyor"
 )
 
-// ─── Domain Entities ──────────────────────────────────────────────────────────
-
 type Company struct {
 	ID                string   `json:"id"`
 	INN               string   `json:"inn"`
@@ -49,7 +47,7 @@ type Clarification struct {
 	ApplicationID        string   `json:"application_id"`
 	QuestionText         string   `json:"question_text"`
 	RequiredDocumentType string   `json:"required_document_type"`
-	Status               string   `json:"status"` // PENDING | RESPONDED
+	Status               string   `json:"status"`
 	CreatedAt            string   `json:"created_at"`
 	ResponseText         *string  `json:"response_text"`
 	DocumentIDs          []string `json:"document_ids"`
@@ -90,8 +88,6 @@ type Application struct {
 	CreatedAt            string                        `json:"created_at"`
 	UpdatedAt            string                        `json:"updated_at"`
 }
-
-// ─── In-Memory Store ──────────────────────────────────────────────────────────
 
 type DB struct {
 	Mu             sync.RWMutex
@@ -136,7 +132,6 @@ func now() string {
 
 func strPtr(s string) *string { return &s }
 
-// LoadPreset сбрасывает БД и активирует пресет
 func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 	preset, ok := db.Presets[presetID]
 	if !ok {
@@ -154,7 +149,6 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 	db.Users[ownerID] = User{ID: ownerID, Role: "OWNER", Name: "Алексей Смирнов (Собственник)", Email: "owner@company.ru"}
 	db.Users[accountantID] = User{ID: accountantID, Role: "ACCOUNTANT", Name: "Елена Кузнецова (Главбух)", Email: "accountant@company.ru"}
 
-	// Пресет 5 — пустой ввод
 	if preset.Company == nil || preset.Application == nil {
 		compID := newUUID()
 		appID := newUUID()
@@ -191,7 +185,6 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 		}, nil
 	}
 
-	// Пресеты 1-4: запускаем конвейер
 	compID := newUUID()
 	comp := Company{
 		ID: compID, INN: preset.Company.INN, OGRN: preset.Company.OGRN,
@@ -208,11 +201,11 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 	appID := newUUID()
 	finalState, scoring, decision := conveyor.RunConveyor(*preset.Application, *preset.Enrichment)
 
-	var auditLog []AuditLogEntry
+	auditLog := make([]AuditLogEntry, 0)
 	states := buildAuditTrail(appID, finalState)
 	auditLog = append(auditLog, states...)
 
-	var offers []conveyor.CreditOffer
+	offers := make([]conveyor.CreditOffer, 0)
 	var rehab *conveyor.RehabilitationPlan
 	var decResult *conveyor.DecisionResult
 	var scoreResult *conveyor.ScoringResult
@@ -247,7 +240,6 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 		CreatedAt:           now(), UpdatedAt: now(),
 	}
 
-	// Для пресета 3 (MANUAL_REVIEW) добавляем демо-уточнение
 	if presetID == "logistics_seasonal" {
 		clarifID := newUUID()
 		clarif := Clarification{
@@ -269,7 +261,6 @@ func (db *DB) LoadPreset(presetID string) (map[string]interface{}, error) {
 	}, nil
 }
 
-// buildAuditTrail строит цепочку аудита по конечному состоянию
 func buildAuditTrail(appID string, finalState conveyor.AppState) []AuditLogEntry {
 	type step struct{ from, to string; trigger, actor string }
 	chain := []step{
@@ -291,7 +282,7 @@ func buildAuditTrail(appID string, finalState conveyor.AppState) []AuditLogEntry
 		chain = append(chain, step{"SCORING_AND_POLICY", "REJECTED", "AUTO_REJECT", "SYSTEM_CONVEYOR"})
 	}
 
-	var entries []AuditLogEntry
+	entries := make([]AuditLogEntry, 0)
 	for _, s := range chain {
 		var fromState *string
 		if s.from != "" {
@@ -308,7 +299,6 @@ func buildAuditTrail(appID string, finalState conveyor.AppState) []AuditLogEntry
 	return entries
 }
 
-// GetApplication thread-safe
 func (db *DB) GetApplication(id string) (Application, bool) {
 	db.Mu.RLock()
 	defer db.Mu.RUnlock()
@@ -345,10 +335,10 @@ func (db *DB) ListApplications() []Application {
 	return list
 }
 
-// StoreErr — типизированная ошибка
 type StoreErr struct{ Msg string }
 func (e StoreErr) Error() string { return e.Msg }
 func ErrNotFound(entity, id string) StoreErr {
 	return StoreErr{Msg: entity + " '" + id + "' не найден"}
 }
+
 

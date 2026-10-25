@@ -237,7 +237,8 @@ function ClarificationCard({ clarification, applicationId, onResponded }: ItemPr
 }
 
 export function ClarificationWidget({ clarifications, applicationId, onResponded }: Props) {
-  const pending = clarifications.filter((c) => c.status === 'PENDING');
+  const safeClarifs = clarifications ?? [];
+  const pending = safeClarifs.filter((c) => c.status === 'PENDING');
 
   if (!pending.length) return null;
 

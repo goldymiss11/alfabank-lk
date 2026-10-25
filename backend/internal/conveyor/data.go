@@ -1,6 +1,5 @@
 package conveyor
 
-// SyntheticPreset — один из 5 демо-профилей
 type SyntheticPreset struct {
 	PresetID        string
 	Label           string
@@ -29,14 +28,13 @@ var cap5M = 5_000_000.0
 var cap10K_p = 10_000.0
 var nil_cap *float64 = nil
 
-// BuildPresets возвращает 5 синтетических профилей
 func BuildPresets() []SyntheticPreset {
 	capNil := (*float64)(nil)
 	cap5m := 5_000_000.0
 	cap10k := 10_000.0
 
 	return []SyntheticPreset{
-		// Пресет 1: ИП Кофеева — Автоодобрение
+
 		{
 			PresetID:        "coffee_shop_ip",
 			Label:           "☕ ИП Кофеева — Авто-одобрение овердрафта",
@@ -59,7 +57,7 @@ func BuildPresets() []SyntheticPreset {
 				Egrul: EgrulData{RegistrationDate: "2019-03-15", AuthorizedCapital: capNil, IsLiquidating: false,
 					Founders: []map[string]interface{}{}},
 				Fns: FnsData{TaxBlocks: []map[string]string{}, TaxDiscrepancies: 0, EmployeeCount: 8},
-				Bki: BkiData{ActiveLoans: 1, TotalMonthlyPayment: 25_000,
+				Bki: BkiData{ActiveLoans: 0, TotalMonthlyPayment: 0,
 					Overdue0: true, Overdue30: false, Overdue60: false, Overdue90Plus: false, CreditHistoryMonths: 60},
 				AlfaAccounts: AlfaAccountsData{
 					MonthlyRevenue:       []float64{620000, 580000, 650000, 700000, 710000, 680000, 720000, 750000, 690000, 730000, 760000, 800000},
@@ -69,7 +67,7 @@ func BuildPresets() []SyntheticPreset {
 				},
 			},
 		},
-		// Пресет 2: ООО ТехноСтрой — Counter-Offer
+
 		{
 			PresetID:        "manufacturing_ooo",
 			Label:           "🏭 ООО ТехноСтрой — Counter-Offer (3 альтернативы)",
@@ -102,7 +100,7 @@ func BuildPresets() []SyntheticPreset {
 				},
 			},
 		},
-		// Пресет 3: ООО ЛогиТранс — Manual Review
+
 		{
 			PresetID:        "logistics_seasonal",
 			Label:           "🚛 ООО ЛогиТранс — Ручной разбор + уточнение",
@@ -135,7 +133,7 @@ func BuildPresets() []SyntheticPreset {
 				},
 			},
 		},
-		// Пресет 4: ООО ОптТрейд — Rejected
+
 		{
 			PresetID:        "wholesale_rejected",
 			Label:           "⛔ ООО ОптТрейд — Отказ + План реабилитации",
@@ -171,7 +169,7 @@ func BuildPresets() []SyntheticPreset {
 				},
 			},
 		},
-		// Пресет 5: Свой ввод
+
 		{
 			PresetID:        "custom_input",
 			Label:           "✏️ Свой ввод — заполните форму вручную",
@@ -182,3 +180,4 @@ func BuildPresets() []SyntheticPreset {
 		},
 	}
 }
+

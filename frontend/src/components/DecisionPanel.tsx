@@ -10,8 +10,10 @@ interface Props {
 export function DecisionPanel({ decision, requestedAmount }: Props) {
   const {
     max_monthly_payment, max_unsecured_limit, max_secured_limit,
-    dti_ratio, offers, soft_flags,
+    dti_ratio,
   } = decision;
+  const offers = decision.offers ?? [];
+  const soft_flags = decision.soft_flags ?? [];
 
   const fits = requestedAmount <= max_unsecured_limit;
   const fitsSecured = requestedAmount <= max_secured_limit;

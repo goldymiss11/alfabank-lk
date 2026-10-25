@@ -20,3 +20,4 @@ func nowStr() string {
 }
 
 func strP(s string) *string { return &s }
+

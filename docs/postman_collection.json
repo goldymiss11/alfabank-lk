@@ -1,0 +1,131 @@
+{
+  "info": {
+    "name": "Alfa-Bank Smart Credit Conveyor API",
+    "description": "Коллекция запросов для проверки цифрового кредитного конвейера",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "appId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "1. Presets - List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/presets"
+      }
+    },
+    {
+      "name": "2. Presets - Load Preset 1 (Approved)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/presets/coffee_shop_ip/load"
+      }
+    },
+    {
+      "name": "3. Presets - Load Preset 2 (Counter-Offer)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/presets/manufacturing_ooo/load"
+      }
+    },
+    {
+      "name": "4. Presets - Load Preset 3 (Manual Review)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/presets/logistics_seasonal/load"
+      }
+    },
+    {
+      "name": "5. Presets - Load Preset 4 (Rejected + Rehab)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/presets/wholesale_rejected/load"
+      }
+    },
+    {
+      "name": "6. Applications - List All",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/applications"
+      }
+    },
+    {
+      "name": "7. Applications - Get Details",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/applications/{{appId}}"
+      }
+    },
+    {
+      "name": "8. Applications - Transition (Accept Offer)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"trigger\": \"ACCEPT_OFFER\",\n  \"actor_type\": \"CLIENT_OWNER\"\n}"
+        },
+        "url": "{{baseUrl}}/api/applications/{{appId}}/transition"
+      }
+    },
+    {
+      "name": "9. Applications - Sign Contract (OTP)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"otp_code\": \"1234\"\n}"
+        },
+        "url": "{{baseUrl}}/api/applications/{{appId}}/sign"
+      }
+    },
+    {
+      "name": "10. Underwriter - Queue",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/underwriter/queue"
+      }
+    },
+    {
+      "name": "11. Underwriter - Decide (Approve)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Согласовано аналитиком\"\n}"
+        },
+        "url": "{{baseUrl}}/api/underwriter/applications/{{appId}}/decide"
+      }
+    },
+    {
+      "name": "12. News - Gov Support by OKVED",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/news?okved_prefix=56"
+      }
+    },
+    {
+      "name": "13. AI Advisor - Chat",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Какой кредит лучше взять для кофейни?\"\n}"
+        },
+        "url": "{{baseUrl}}/api/ai/chat"
+      }
+    }
+  ]
+}

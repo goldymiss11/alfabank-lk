@@ -2,7 +2,6 @@ package conveyor
 
 import "strings"
 
-// NewsItem представляет программу господдержки
 type NewsItem struct {
 	ID                   string   `json:"id"`
 	Title                string   `json:"title"`
@@ -81,7 +80,6 @@ var GovSupportNews = []NewsItem{
 	},
 }
 
-// GetNewsForOkved возвращает новости, подходящие для указанного ОКВЭД
 func GetNewsForOkved(okvedPrefix string) []NewsItem {
 	var result []NewsItem
 	prefix := strings.TrimSpace(okvedPrefix)
@@ -94,7 +92,7 @@ func GetNewsForOkved(okvedPrefix string) []NewsItem {
 		}
 	}
 	if len(result) == 0 {
-		// Вернуть универсальные (ALL)
+
 		for _, item := range GovSupportNews {
 			for _, p := range item.OkvedPrefixes {
 				if p == "ALL" {
@@ -107,7 +105,6 @@ func GetNewsForOkved(okvedPrefix string) []NewsItem {
 	return result
 }
 
-// AIFallbackAnswer — детерминированный AI-советник без GPU
 func AIFallbackAnswer(message string) map[string]interface{} {
 	msg := strings.ToLower(message)
 
@@ -177,10 +174,10 @@ func AIFallbackAnswer(message string) map[string]interface{} {
 		}
 	}
 
-	// Дефолтный ответ
 	return map[string]interface{}{
 		"response":    "Я помогу подобрать оптимальный кредитный продукт для вашего бизнеса. Расскажите, какая сумма нужна, на какой срок и для каких целей?",
 		"source":      "fallback",
 		"suggestions": []string{"Оборотный кредит", "Овердрафт", "Инвестиционный кредит", "Программы господдержки"},
 	}
 }
+

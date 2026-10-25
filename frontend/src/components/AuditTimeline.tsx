@@ -22,6 +22,7 @@ interface Props {
 }
 
 export function AuditTimeline({ auditLog }: Props) {
+  const safeLog = auditLog ?? [];
   return (
     <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 space-y-4 shadow-xs alfa-card-hover">
       <div className="flex items-center gap-2">
@@ -33,7 +34,7 @@ export function AuditTimeline({ auditLog }: Props) {
         {/* Vertical line: 1px neutral */}
         <div className="absolute left-[7px] top-2 bottom-2 w-px bg-neutral-200" />
 
-        {[...auditLog].reverse().map((entry, i) => {
+        {[...safeLog].reverse().map((entry, i) => {
           const actorColor = ACTOR_COLORS[entry.actor_type] ?? 'bg-gray-100 text-gray-600';
           const toLabel = STATE_LABELS[entry.to_state as keyof typeof STATE_LABELS];
           const fromLabel = entry.from_state ? STATE_LABELS[entry.from_state as keyof typeof STATE_LABELS] : null;

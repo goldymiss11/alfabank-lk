@@ -8,7 +8,6 @@ import (
 	"alfabank-credit-conveyor/internal/store"
 )
 
-// GetPresets — GET /api/presets
 func (h *Handler) GetPresets(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
@@ -31,7 +30,7 @@ func (h *Handler) GetPresets(w http.ResponseWriter, r *http.Request) {
 			"description":      "Ожидаемый исход: " + p.ExpectedOutcome,
 		})
 	}
-	// Sort by preset order
+
 	order := []string{"coffee_shop_ip", "manufacturing_ooo", "logistics_seasonal", "wholesale_rejected", "custom_input"}
 	ordered := make([]map[string]interface{}, 0, len(list))
 	for _, id := range order {
@@ -48,15 +47,12 @@ func (h *Handler) GetPresets(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PresetsRouter — POST /api/presets/{id}/activate  или /load
 func (h *Handler) PresetsRouter(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
 		return
 	}
 
-	// Path: /api/presets/{id}/activate или /api/presets/{id}/load
-	// Strip prefix
 	path := r.URL.Path
 	for _, prefix := range []string{"/api/v1/presets/", "/api/presets/"} {
 		if strings.HasPrefix(path, prefix) {
@@ -64,7 +60,7 @@ func (h *Handler) PresetsRouter(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	// path = "{id}/activate" or "{id}/load"
+
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 1 || parts[0] == "" {
 		writeError(w, http.StatusBadRequest, "Не указан ID пресета")
@@ -84,7 +80,6 @@ func (h *Handler) PresetsRouter(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, result)
 }
 
-// ApplicationsRouter — GET /api/applications | POST /api/applications
 func (h *Handler) ApplicationsRouter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -180,4 +175,5 @@ func (h *Handler) CreateApplication(w http.ResponseWriter, r *http.Request) {
 		"id": appID, "state": string(conveyor.StateDraft), "created_at": createdAt,
 	})
 }
+
 

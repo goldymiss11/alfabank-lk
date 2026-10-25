@@ -9,7 +9,6 @@ import (
 	"alfabank-credit-conveyor/internal/store"
 )
 
-// ClarificationsRouter — /api/clarifications/{id}/respond
 func (h *Handler) ClarificationsRouter(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
@@ -22,7 +21,7 @@ func (h *Handler) ClarificationsRouter(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	// path = "{id}/respond"
+
 	parts := strings.SplitN(strings.Trim(path, "/"), "/", 2)
 	clarifID := parts[0]
 	subPath := ""
@@ -61,7 +60,6 @@ func (h *Handler) RespondClarification(w http.ResponseWriter, r *http.Request, c
 	}
 	h.DB.SetClarification(clarif)
 
-	// Обновляем заявку
 	app, ok := h.DB.GetApplication(clarif.ApplicationID)
 	if ok {
 		oldState := string(app.State)
@@ -76,7 +74,7 @@ func (h *Handler) RespondClarification(w http.ResponseWriter, r *http.Request, c
 			},
 			CreatedAt: nowStr(),
 		})
-		// Обновляем уточнение внутри заявки
+
 		for i, c := range app.Clarifications {
 			if c.ID == clarifID {
 				app.Clarifications[i] = clarif
@@ -98,7 +96,6 @@ func (h *Handler) RespondClarification(w http.ResponseWriter, r *http.Request, c
 	})
 }
 
-// UnderwriterRouter — /api/underwriter/...
 func (h *Handler) UnderwriterRouter(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	for _, prefix := range []string{"/api/v1/underwriter/", "/api/underwriter/"} {
@@ -117,7 +114,7 @@ func (h *Handler) UnderwriterRouter(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
 			return
 		}
-		// applications/{id}/decide
+
 		inner := strings.TrimPrefix(path, "applications/")
 		inner = strings.TrimSuffix(inner, "/decide")
 		h.UnderwriterDecide(w, r, inner)
@@ -243,7 +240,6 @@ func (h *Handler) UnderwriterDecide(w http.ResponseWriter, r *http.Request, appI
 	})
 }
 
-// GetNews — GET /api/news?okved_prefix=56
 func (h *Handler) GetNews(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
@@ -260,7 +256,6 @@ func (h *Handler) GetNews(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{"items": items})
 }
 
-// AIChat — POST /api/ai/chat
 func (h *Handler) AIChat(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "Метод не поддерживается")
@@ -281,7 +276,6 @@ func (h *Handler) AIChat(w http.ResponseWriter, r *http.Request) {
 
 	ans := conveyor.AIFallbackAnswer(req.Message)
 
-	// Добавляем контекст заявки если указан ID
 	if req.ApplicationID != nil && *req.ApplicationID != "" {
 		app, ok := h.DB.GetApplication(*req.ApplicationID)
 		if ok && app.ScoringResult != nil {
@@ -295,7 +289,6 @@ func (h *Handler) AIChat(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, ans)
 }
 
-// MocksRouter — /api/mocks/{service}/{inn}
 func (h *Handler) MocksRouter(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	for _, prefix := range []string{"/api/v1/mocks/", "/api/mocks/"} {
@@ -312,7 +305,6 @@ func (h *Handler) MocksRouter(w http.ResponseWriter, r *http.Request) {
 	service := parts[0]
 	inn := parts[1]
 
-	// Поиск пресета по ИНН
 	var matched *conveyor.SyntheticPreset
 	for _, p := range h.DB.Presets {
 		if p.Company != nil && p.Company.INN == inn {
@@ -365,7 +357,7 @@ func (h *Handler) MocksRouter(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	case "news":
-		items := conveyor.GetNewsForOkved(inn) // тут inn = okved
+		items := conveyor.GetNewsForOkved(inn)
 		writeJSON(w, http.StatusOK, map[string]interface{}{"items": items})
 	default:
 		writeError(w, http.StatusNotFound, "Сервис не найден: "+service)
@@ -392,3 +384,4 @@ func fmt_sprintf_zero(v int) string {
 			strings.TrimRight(strings.TrimRight(
 				string(rune('0'+v)), ""), ""), ".", "", 1), ",", "", 1), "0"), ".")
 }
+

@@ -2,7 +2,6 @@ package conveyor
 
 import "fmt"
 
-// FSM transitions: from -> trigger -> to
 var transitions = map[AppState]map[Trigger]AppState{
 	StateDraft: {
 		TriggerSubmit:  StateSubmitted,
@@ -54,7 +53,6 @@ var transitions = map[AppState]map[Trigger]AppState{
 	},
 }
 
-// CanTransition checks if transition is valid
 func CanTransition(from AppState, trigger Trigger) bool {
 	ts, ok := transitions[from]
 	if !ok {
@@ -64,7 +62,6 @@ func CanTransition(from AppState, trigger Trigger) bool {
 	return ok
 }
 
-// Transition performs the state change
 func Transition(from AppState, trigger Trigger) (AppState, error) {
 	ts, ok := transitions[from]
 	if !ok {
@@ -77,7 +74,6 @@ func Transition(from AppState, trigger Trigger) (AppState, error) {
 	return to, nil
 }
 
-// AvailableTriggers returns list of allowed triggers from current state
 func AvailableTriggers(from AppState) []Trigger {
 	ts, ok := transitions[from]
 	if !ok {
@@ -90,30 +86,26 @@ func AvailableTriggers(from AppState) []Trigger {
 	return result
 }
 
-// RunConveyor автоматически прогоняет заявку через конвейер из DRAFT до финального состояния
 func RunConveyor(req ApplicationRequest, enrichment EnrichmentBundle) (AppState, *ScoringResult, *DecisionResult) {
-	// DRAFT → SUBMITTED → VALIDATION → ENRICHMENT → SCORING_AND_POLICY → final
+
 	state := StateDraft
 
-	// SUBMIT
 	state, _ = Transition(state, TriggerSubmit)
-	// AUTO_VALIDATE
+
 	state, _ = Transition(state, TriggerAutoValidate)
-	// VALIDATION_PASSED (ИНН валиден, сумма > 0)
+
 	if req.CompanyINN != "" && req.RequestedAmount > 0 {
 		state, _ = Transition(state, TriggerValidationPassed)
 	} else {
 		state, _ = Transition(state, TriggerValidationFailed)
 		return state, nil, nil
 	}
-	// ENRICHMENT_COMPLETE
+
 	state, _ = Transition(state, TriggerEnrichmentComplete)
 
-	// SCORING
 	scoring := Score(enrichment)
 	decision := Decide(scoring, req, enrichment, 0)
 
-	// Выбор триггера по результату
 	switch decision.Decision {
 	case DecisionApproved:
 		state, _ = Transition(state, TriggerAutoApprove)
@@ -127,3 +119,4 @@ func RunConveyor(req ApplicationRequest, enrichment EnrichmentBundle) (AppState,
 
 	return state, &scoring, &decision
 }
+

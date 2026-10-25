@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-// ─── Enums ───────────────────────────────────────────────────────────────────
-
 type AppState string
 
 const (
@@ -90,8 +88,6 @@ const (
 	DecisionManualReview Decision = "MANUAL_REVIEW"
 	DecisionRejected     Decision = "REJECTED"
 )
-
-// ─── Data Structures ─────────────────────────────────────────────────────────
 
 type EgrulData struct {
 	RegistrationDate string                   `json:"registration_date"`
@@ -193,8 +189,6 @@ type ApplicationRequest struct {
 	GovProgramID       *string     `json:"gov_program_id"`
 }
 
-// ─── Product Catalog ─────────────────────────────────────────────────────────
-
 type ProductConfig struct {
 	Code                 ProductType
 	MinAmount            float64
@@ -242,8 +236,6 @@ var AlternativeProduct = map[ProductType]ProductType{
 	ProductOverdraft:          ProductRevolvingLineVKL,
 }
 
-// ─── Grade Bounds ─────────────────────────────────────────────────────────────
-
 type gradeBound struct {
 	Grade  RiskGrade
 	Lo, Hi int
@@ -258,13 +250,10 @@ var gradeBounds = []gradeBound{
 	{GradeE, 0, 349, 0.250, 0.990},
 }
 
-// ─── Scoring Engine ───────────────────────────────────────────────────────────
-
 func Score(data EnrichmentBundle) ScoringResult {
-	var factors []ScoringFactor
-	var stopFactors []string
+	factors := make([]ScoringFactor, 0)
+	stopFactors := make([]string, 0)
 
-	// EGRUL: Возраст бизнеса
 	ageYears := businessAgeYears(data.Egrul.RegistrationDate)
 	ageDelta := ageScore(ageYears)
 	factors = append(factors, ScoringFactor{
@@ -279,7 +268,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		stopFactors = append(stopFactors, "Возраст бизнеса менее 3 месяцев")
 	}
 
-	// EGRUL: Уставный капитал
 	capDelta := capitalScore(data.Egrul.AuthorizedCapital)
 	capRaw := "Н/Д (ИП)"
 	capDesc := "ИП — уставный капитал не применим"
@@ -296,7 +284,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		Description: capDesc,
 	})
 
-	// EGRUL: Ликвидация
 	if data.Egrul.IsLiquidating {
 		stopFactors = append(stopFactors, "Компания в процессе ликвидации/банкротства")
 		factors = append(factors, ScoringFactor{
@@ -309,7 +296,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		})
 	}
 
-	// FNS: Налоговые блокировки
 	if len(data.Fns.TaxBlocks) > 0 {
 		stopFactors = append(stopFactors, "Налоговая блокировка счёта ФНС")
 		factors = append(factors, ScoringFactor{
@@ -331,7 +317,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		})
 	}
 
-	// FNS: Налоговые разрывы
 	disc := data.Fns.TaxDiscrepancies
 	discDelta := 0
 	if disc == 1 {
@@ -348,7 +333,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		Description: fmt.Sprintf("%d расхождений", disc),
 	})
 
-	// FNS: Численность
 	empDelta := employeeScore(data.Fns.EmployeeCount)
 	factors = append(factors, ScoringFactor{
 		FactorName:  "Численность сотрудников",
@@ -359,7 +343,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		Description: fmt.Sprintf("%d чел.", data.Fns.EmployeeCount),
 	})
 
-	// BKI
 	if data.Bki.Overdue90Plus {
 		stopFactors = append(stopFactors, "Просрочка 90+ дней в кредитной истории")
 		factors = append(factors, ScoringFactor{
@@ -411,7 +394,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		})
 	}
 
-	// TURNOVER: Среднемесячный оборот
 	revenues := data.AlfaAccounts.MonthlyRevenue
 	avgRev := 0.0
 	if len(revenues) > 0 {
@@ -431,7 +413,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		Description: revenueDescription(avgRev),
 	})
 
-	// TURNOVER: Тренд
 	trendDelta, trendPct := trendScore(revenues)
 	factors = append(factors, ScoringFactor{
 		FactorName:  "Тренд оборотов (3м vs пред.3м)",
@@ -442,7 +423,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		Description: fmt.Sprintf("Изменение %+.1f%%", trendPct),
 	})
 
-	// TURNOVER: Контрагенты
 	ctrDelta := counterpartyScore(data.AlfaAccounts.UniqueCounterparties)
 	factors = append(factors, ScoringFactor{
 		FactorName:  "Уникальные контрагенты",
@@ -453,7 +433,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		Description: fmt.Sprintf("%d контрагентов", data.AlfaAccounts.UniqueCounterparties),
 	})
 
-	// TURNOVER: Регулярность налоговых платежей
 	taxDelta := -30
 	taxRaw := "Пропуски"
 	taxDesc := "Нерегулярные платежи"
@@ -471,7 +450,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		Description: taxDesc,
 	})
 
-	// Итог
 	total := 500
 	for _, f := range factors {
 		total += f.ScoreDelta
@@ -501,8 +479,6 @@ func Score(data EnrichmentBundle) ScoringResult {
 		FactorsBreakdown: factors,
 	}
 }
-
-// ─── Scoring Helpers ──────────────────────────────────────────────────────────
 
 func businessAgeYears(regDateStr string) float64 {
 	reg, err := time.Parse("2006-01-02", regDateStr)
@@ -667,8 +643,6 @@ func roundFloat(f float64, places int) float64 {
 	return math.Round(f*pow) / pow
 }
 
-// ─── Decision Engine ──────────────────────────────────────────────────────────
-
 const (
 	netMargin       = 0.15
 	dtiLimit        = 0.50
@@ -679,7 +653,6 @@ func Decide(scoring ScoringResult, req ApplicationRequest, data EnrichmentBundle
 	cfg := ProductCatalog[req.ProductType]
 	grade := scoring.RiskGrade
 
-	// Финансовые расчёты
 	revenues := data.AlfaAccounts.MonthlyRevenue
 	avgMonthlyRevenue := 0.0
 	if len(revenues) > 0 {
@@ -716,8 +689,7 @@ func Decide(scoring ScoringResult, req ApplicationRequest, data EnrichmentBundle
 	maxUnsecured := annuityLimit(maxMonthlyPayment, effectiveRate, req.RequestedTermMonths)
 	maxSecured := maxUnsecured * securedMultiplier
 
-	// Soft flags
-	var softFlags []string
+	softFlags := make([]string, 0)
 	if hasSeasonalVolatility(revenues) {
 		softFlags = append(softFlags, "seasonal_volatility")
 	}
@@ -731,8 +703,7 @@ func Decide(scoring ScoringResult, req ApplicationRequest, data EnrichmentBundle
 		softFlags = append(softFlags, "short_credit_history")
 	}
 
-	// Decision Matrix
-	var offers []CreditOffer
+	offers := make([]CreditOffer, 0)
 	var rehab *RehabilitationPlan
 	var decision Decision
 
@@ -783,9 +754,8 @@ func Decide(scoring ScoringResult, req ApplicationRequest, data EnrichmentBundle
 }
 
 func generateCounterOffers(req ApplicationRequest, cfg ProductConfig, grade RiskGrade, rate, maxUnsecured, maxSecured float64) []CreditOffer {
-	var offers []CreditOffer
+	offers := make([]CreditOffer, 0)
 
-	// Оффер 1: Сниженная сумма без залога
 	amount1 := maxUnsecured
 	if amount1 > cfg.MaxAmount {
 		amount1 = cfg.MaxAmount
@@ -807,7 +777,6 @@ func generateCounterOffers(req ApplicationRequest, cfg ProductConfig, grade Risk
 		Description:           "Сниженная сумма без обеспечения — доступна прямо сейчас",
 	})
 
-	// Оффер 2: Полная сумма с обеспечением
 	amount2 := req.RequestedAmount
 	if amount2 > maxSecured {
 		amount2 = maxSecured
@@ -833,7 +802,6 @@ func generateCounterOffers(req ApplicationRequest, cfg ProductConfig, grade Risk
 		Description:           "Запрошенная сумма под обеспечение / гарантию Корпорации МСП",
 	})
 
-	// Оффер 3: Альтернативный продукт
 	altProductType, ok := AlternativeProduct[req.ProductType]
 	if !ok {
 		altProductType = req.ProductType
@@ -886,7 +854,7 @@ func buildRehabPlan(reasons []string) RehabilitationPlan {
 		{"риск", "Снизить долговую нагрузку и улучшить финансовые показатели", 45, "MEDIUM"},
 	}
 
-	var items []ActionItem
+	items := make([]ActionItem, 0)
 	maxDays := 0
 	for _, reason := range reasons {
 		for _, e := range entries {
@@ -967,3 +935,5 @@ func annuityLimit(maxPayment, annualRate float64, termMonths int) float64 {
 func containsInsensitive(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
+
+

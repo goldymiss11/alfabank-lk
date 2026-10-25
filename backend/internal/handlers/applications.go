@@ -12,7 +12,6 @@ import (
 	"alfabank-credit-conveyor/internal/store"
 )
 
-// ApplicationsSubRouter — /api/applications/{id}/...
 func (h *Handler) ApplicationsSubRouter(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	for _, prefix := range []string{"/api/v1/applications/", "/api/applications/"} {
@@ -21,7 +20,7 @@ func (h *Handler) ApplicationsSubRouter(w http.ResponseWriter, r *http.Request) 
 			break
 		}
 	}
-	// path = "{id}" or "{id}/transition" or "{id}/enrich" etc.
+
 	parts := strings.SplitN(strings.Trim(path, "/"), "/", 2)
 	appID := parts[0]
 	if appID == "" {
@@ -154,7 +153,6 @@ func (h *Handler) Enrich(w http.ResponseWriter, r *http.Request, appID string) {
 		return
 	}
 
-	// Ищем пресет по ИНН
 	var bundle *conveyor.EnrichmentBundle
 	for _, p := range h.DB.Presets {
 		if p.Company != nil && p.Company.INN == app.Company.INN && p.Enrichment != nil {
@@ -163,7 +161,7 @@ func (h *Handler) Enrich(w http.ResponseWriter, r *http.Request, appID string) {
 		}
 	}
 	if bundle == nil {
-		// Генерируем типовой бандл
+
 		def := defaultEnrichment(app.Company)
 		bundle = &def
 	}
@@ -216,7 +214,7 @@ func (h *Handler) GetScoring(w http.ResponseWriter, r *http.Request, appID strin
 		writeJSON(w, http.StatusOK, app.ScoringResult)
 		return
 	}
-	// Запускаем обогащение если нужно
+
 	if app.EnrichmentSnapshots == nil {
 		def := defaultEnrichment(app.Company)
 		app.EnrichmentSnapshots = &def
@@ -238,7 +236,7 @@ func (h *Handler) GetDecision(w http.ResponseWriter, r *http.Request, appID stri
 		writeJSON(w, http.StatusOK, app.DecisionResult)
 		return
 	}
-	// Нужен скоринг
+
 	if app.EnrichmentSnapshots == nil {
 		def := defaultEnrichment(app.Company)
 		app.EnrichmentSnapshots = &def
@@ -305,7 +303,6 @@ func (h *Handler) CreateClarification(w http.ResponseWriter, r *http.Request, ap
 	h.DB.SetClarification(clarif)
 	app.Clarifications = append(app.Clarifications, clarif)
 
-	// Переводим в NEED_CLARIFICATION если из MANUAL_REVIEW
 	if app.State == conveyor.StateManualReview || app.State == conveyor.StateValidation {
 		prevStr := string(app.State)
 		app.State = conveyor.StateNeedClarification
@@ -514,7 +511,6 @@ func (h *Handler) ApplyGovProgram(w http.ResponseWriter, r *http.Request, appID 
 	app.GovProgramID = &program.ID
 	app.GovProgramTitle = &program.Title
 
-	// Пересчёт офферов
 	if app.ScoringResult != nil && app.EnrichmentSnapshots != nil {
 		appReq := conveyor.ApplicationRequest{
 			CompanyINN:          app.Company.INN,
@@ -552,4 +548,5 @@ func (h *Handler) ApplyGovProgram(w http.ResponseWriter, r *http.Request, appID 
 		"message":        "Программа «" + program.Title + "» успешно подключена к заявке",
 	})
 }
+
 

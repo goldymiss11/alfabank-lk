@@ -306,7 +306,7 @@ export function EnrichmentViewer({ snapshots }: Props) {
                 Активные решения о приостановлении операций (ст. 76 НК РФ)
               </p>
               <div className="space-y-2">
-                {fns.tax_blocks.map((block, i) => (
+                {(fns.tax_blocks ?? []).map((block, i) => (
                   <div
                     key={i}
                     className="bg-rose-50 border border-rose-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
@@ -423,11 +423,11 @@ export function EnrichmentViewer({ snapshots }: Props) {
                   Учредители и структура владения
                 </p>
                 <span className="text-xs text-neutral-400">
-                  {egrul.founders.length} {egrul.founders.length === 1 ? 'учредитель' : 'учредителя'}
+                  {(egrul.founders ?? []).length} {(egrul.founders ?? []).length === 1 ? 'учредитель' : 'учредителя'}
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {egrul.founders.map((f, i) => (
+                {(egrul.founders ?? []).map((f, i) => (
                   <div
                     key={i}
                     className="bg-[#F8F9FB] border border-neutral-200/80 rounded-2xl p-3.5 flex items-center justify-between"

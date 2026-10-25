@@ -384,10 +384,11 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
 }
 
 export function CounterOffersMatrix({ offers, application, onOfferAccepted, isSplit }: Props) {
+  const safeOffers = offers ?? [];
   const [selected, setSelected] = useState<CreditOffer | null>(null);
-  const [activeVariant, setActiveVariant] = useState<number>(offers[0]?.variant_index ?? 1);
+  const [activeVariant, setActiveVariant] = useState<number>(safeOffers[0]?.variant_index ?? 1);
 
-  if (!offers.length) return null;
+  if (!safeOffers.length) return null;
 
   return (
     <>
@@ -402,7 +403,7 @@ export function CounterOffersMatrix({ offers, application, onOfferAccepted, isSp
         </div>
 
         <div className={`grid gap-4 mt-4 ${isSplit ? 'grid-cols-1 2xl:grid-cols-3' : 'grid-cols-1 md:grid-cols-3'}`}>
-          {offers.map((offer, idx) => {
+          {safeOffers.map((offer, idx) => {
             const theme = OFFER_THEMES[idx % OFFER_THEMES.length];
             const BadgeIcon = theme.badgeIcon;
             const isSelected = activeVariant === offer.variant_index;

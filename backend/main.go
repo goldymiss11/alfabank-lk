@@ -34,36 +34,27 @@ func main() {
 	if uploadDir == "" {
 		uploadDir = "uploads"
 	}
-	// Создаём папку uploads если нет
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		log.Fatalf("Не удалось создать папку uploads: %v", err)
+		log.Fatalf("uploads dir error: %v", err)
 	}
 	absUploadDir, _ := filepath.Abs(uploadDir)
 
-	// Инициализация БД
 	db := store.NewDB()
 
-	// Загружаем дефолтный пресет при старте
 	if _, err := db.LoadPreset("coffee_shop_ip"); err != nil {
-		log.Printf("Предупреждение: не удалось загрузить начальный пресет: %v", err)
-	} else {
-		log.Println("✅ Пресет 'coffee_shop_ip' загружен")
+		log.Printf("preset warning: %v", err)
 	}
 
-	// Регистрация роутов
 	mux := http.NewServeMux()
 	h := handlers.New(db, absUploadDir)
 	h.RegisterRoutes(mux)
 
-	// CORS
 	handler := corsMiddleware(mux)
 
-	log.Printf("🚀 Кредитный конвейер АльфаБанк запущен на :%s", port)
-	log.Printf("📁 Загрузки: %s", absUploadDir)
-	log.Printf("🔗 API: http://localhost:%s/api/v1", port)
-	log.Printf("❤️  Health: http://localhost:%s/health", port)
+	log.Printf("Server listening on :%s", port)
 
 	if err := http.ListenAndServe(":"+port, handler); err != nil {
-		log.Fatalf("Ошибка сервера: %v", err)
+		log.Fatalf("server error: %v", err)
 	}
 }
+

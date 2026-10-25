@@ -193,7 +193,9 @@ function ScoreMeter({ score, riskGrade }: { score: number; riskGrade: RiskGrade 
 
 // ─── Main ScoringPanel Component ─────────────────────────────────────────────
 export function ScoringPanel({ scoring }: Props) {
-  const { risk_score, pd, risk_grade, stop_factors = [], factors_breakdown = [] } = scoring;
+  const { risk_score, pd, risk_grade } = scoring;
+  const stop_factors = scoring.stop_factors ?? [];
+  const factors_breakdown = scoring.factors_breakdown ?? [];
 
   // LGD: 45% standard unsecured recovery parameter
   const lgd = 0.45;

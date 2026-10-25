@@ -1,0 +1,400 @@
+openapi: 3.0.3
+info:
+  title: Alfa-Bank Smart Credit Conveyor API
+  description: Полная спецификация REST API цифрового кредитного конвейера для малого и микробизнеса (Альфа-Хак 2026).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Локальный сервер разработки
+  - url: /api
+    description: Относительный путь (через обратный прокси)
+
+paths:
+  /health:
+    get:
+      summary: Проверка работоспособности сервиса
+      responses:
+        '200':
+          description: Сервер активен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "ok" }
+                  active_preset: { type: string, example: "coffee_shop_ip" }
+                  applications_count: { type: integer, example: 1 }
+
+  /api/presets:
+    get:
+      summary: Список демонстрационных профилей (God-Bar)
+      responses:
+        '200':
+          description: Список пресетов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_preset_id: { type: string }
+                  presets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Preset'
+
+  /api/presets/{preset_id}/activate:
+    post:
+      summary: Активация и загрузка синтетического пресета
+      parameters:
+        - name: preset_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Пресет активирован и прогнан через конвейер
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresetLoadResponse'
+
+  /api/presets/{preset_id}/load:
+    post:
+      summary: Алиас активации пресета
+      parameters:
+        - name: preset_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          $ref: '#/components/schemas/PresetLoadResponse'
+
+  /api/applications:
+    get:
+      summary: Список всех заявок в системе
+      responses:
+        '200':
+          description: Массив заявок
+    post:
+      summary: Создание новой кредитной заявки
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                company_inn: { type: string }
+                product_type: { type: string, enum: [OVERDRAFT, WORKING_CAPITAL_LOAN, REVOLVING_LINE_VKL, INVESTMENT_LOAN] }
+                requested_amount: { type: number }
+                requested_term_months: { type: integer }
+                gov_program_id: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Заявка создана в статусе DRAFT
+
+  /api/applications/{id}:
+    get:
+      summary: Получение полной информации по заявке
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Детали заявки с результатами скоринга, офферами и аудитом
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+
+  /api/applications/{id}/transition:
+    post:
+      summary: Выполнение перехода в графе состояний (FSM)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trigger]
+              properties:
+                trigger: { type: string }
+                actor_type: { type: string }
+                actor_id: { type: string, nullable: true }
+                payload:
+                  type: object
+                  properties:
+                    selected_offer_variant: { type: integer }
+                    otp_code: { type: string }
+      responses:
+        '200':
+          description: Переход успешно выполнен
+
+  /api/applications/{id}/enrich:
+    post:
+      summary: Запуск обогащения внешними источниками
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Данные получены из ФНС, ЕГРЮЛ, БКИ и выписок
+
+  /api/applications/{id}/scoring:
+    get:
+      summary: Детализированный расчет кредитного скоринга
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Балл, PD, грейд и факторы влияния
+
+  /api/applications/{id}/decision:
+    get:
+      summary: Кредитное решение и офферы
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Одобренная сумма, ставки, аннуитет и варианты офферов
+
+  /api/applications/{id}/clarifications:
+    post:
+      summary: Запрос уточнений андеррайтером
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question_text]
+              properties:
+                question_text: { type: string }
+                required_document_type: { type: string }
+      responses:
+        '201':
+          description: Уточнение создано, заявка переведена в NEED_CLARIFICATION
+
+  /api/clarifications/{id}/respond:
+    post:
+      summary: Ответ клиента на запрос уточнения
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [response_text]
+              properties:
+                response_text: { type: string }
+                document_ids: { type: array, items: { type: string } }
+      responses:
+        '200':
+          description: Ответ зафиксирован, заявка переведена в RESUBMITTED
+
+  /api/applications/{id}/documents:
+    post:
+      summary: Загрузка подтверждающего документа
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                doc_type: { type: string, example: "OSV" }
+                uploaded_by: { type: string, example: "CLIENT_OWNER" }
+      responses:
+        '201':
+          description: Документ успешно загружен
+
+  /api/applications/{id}/sign:
+    post:
+      summary: Подписание договора ПЭП (SMS OTP)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [otp_code]
+              properties:
+                otp_code: { type: string, example: "1234" }
+      responses:
+        '200':
+          description: Договор подписан, финансирование зачислено (FUNDED)
+
+  /api/applications/{id}/delegate:
+    post:
+      summary: Делегирование заявки бухгалтеру
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accountant_name: { type: string }
+                accountant_email: { type: string }
+      responses:
+        '200':
+          description: Заявка успешно делегирована
+
+  /api/applications/{id}/apply-program:
+    post:
+      summary: Применение программы господдержки
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [news_item_id]
+              properties:
+                news_item_id: { type: string }
+      responses:
+        '200':
+          description: Программа подключена, ставка снижена
+
+  /api/underwriter/queue:
+    get:
+      summary: Очередь заявок на ручном рассмотрении аналитика
+      responses:
+        '200':
+          description: Список заявок в статусах MANUAL_REVIEW, RESUBMITTED, NEED_CLARIFICATION
+
+  /api/underwriter/applications/{id}/decide:
+    post:
+      summary: Принятие экспертного решения андеррайтером
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [APPROVE, REJECT, COUNTER_OFFER, REQUEST_CLARIFICATION] }
+                comment: { type: string }
+      responses:
+        '200':
+          description: Решение зафиксировано
+
+  /api/news:
+    get:
+      summary: Лента программ господдержки с фильтром по ОКВЭД
+      parameters:
+        - name: okved_prefix
+          in: query
+          schema: { type: string, default: "ALL" }
+      responses:
+        '200':
+          description: Подходящие программы субсидий и гарантий
+
+  /api/ai/chat:
+    post:
+      summary: Консультация с AI-ассистентом
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string }
+                application_id: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Рекомендации и готовые подсказки
+
+components:
+  schemas:
+    Preset:
+      type: object
+      properties:
+        preset_id: { type: string }
+        label: { type: string }
+        expected_outcome: { type: string }
+        company_name: { type: string }
+        inn: { type: string, nullable: true }
+        description: { type: string }
+
+    PresetLoadResponse:
+      type: object
+      properties:
+        preset_id: { type: string }
+        company_id: { type: string }
+        owner_user_id: { type: string }
+        accountant_user_id: { type: string }
+        application_id: { type: string }
+        current_state: { type: string }
+
+    Application:
+      type: object
+      properties:
+        id: { type: string }
+        company: { type: object }
+        product_type: { type: string }
+        requested_amount: { type: number }
+        requested_term_months: { type: integer }
+        state: { type: string }
+        scoring_result: { type: object, nullable: true }
+        decision_result: { type: object, nullable: true }
+        offers: { type: array, items: { type: object } }
+        rehabilitation_plan: { type: object, nullable: true }
+        audit_log: { type: array, items: { type: object } }
+        clarifications: { type: array, items: { type: object } }
+        documents: { type: array, items: { type: object } }
