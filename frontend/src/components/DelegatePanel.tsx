@@ -217,7 +217,7 @@ export function AccountantTaskPanel({
 
   if (done) {
     return (
-      <div className="rounded-3xl bg-white border border-emerald-200/80 p-6 shadow-xs space-y-4">
+      <div className="rounded-3xl bg-white border border-emerald-200/80 p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs font-semibold">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -272,7 +272,7 @@ export function AccountantTaskPanel({
   }
 
   return (
-    <div className="rounded-3xl bg-white border border-amber-200/80 p-6 shadow-xs space-y-4 alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-amber-200/80 p-4 sm:p-6 shadow-xs space-y-4 alfa-card-hover">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/80 text-amber-900 text-xs font-semibold">

@@ -3,10 +3,10 @@ import { RefreshCw, Play, Briefcase, Columns2, Landmark, UserCheck } from 'lucid
 import { useAppStore, type ViewMode } from '../store/appStore';
 import api, { getApiErrorMessage } from '../api/client';
 
-const VIEW_BUTTONS: { mode: ViewMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { mode: 'client', label: 'Кабинет предпринимателя', icon: Briefcase },
-  { mode: 'split',  label: 'Split-Screen',             icon: Columns2 },
-  { mode: 'bank',   label: 'Внутри Банка',             icon: Landmark },
+const VIEW_BUTTONS: { mode: ViewMode; label: string; shortLabel: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { mode: 'client', label: 'Кабинет предпринимателя', shortLabel: 'Кабинет', icon: Briefcase },
+  { mode: 'split',  label: 'Split-Screen',             shortLabel: 'Split',   icon: Columns2 },
+  { mode: 'bank',   label: 'Внутри Банка',             shortLabel: 'Банк',    icon: Landmark },
 ];
 
 const PRESET_CONFIG: Record<
@@ -175,9 +175,9 @@ export function DemoGodBar() {
         {/* View Mode Switcher (Segmented Control Pill) */}
         <nav
           aria-label="Переключение экранов"
-          className="rounded-full bg-[#1F2229] p-1 border border-white/5 flex items-center"
+          className="rounded-full bg-[#1F2229] p-1 border border-white/5 flex items-center shrink-0"
         >
-          {VIEW_BUTTONS.map(({ mode, label, icon: Icon }) => {
+          {VIEW_BUTTONS.map(({ mode, label, shortLabel, icon: Icon }) => {
             const isActive = viewMode === mode;
             return (
               <button
@@ -186,28 +186,30 @@ export function DemoGodBar() {
                 onClick={() => setViewMode(mode)}
                 className={
                   isActive
-                    ? 'bg-[#2C303B] text-white shadow-sm font-semibold rounded-full px-3.5 py-1.5 text-xs flex items-center gap-2 alfa-btn'
-                    : 'text-neutral-400 hover:text-white px-3.5 py-1.5 text-xs flex items-center gap-2 alfa-btn'
+                    ? 'bg-[#2C303B] text-white shadow-sm font-semibold rounded-full px-2.5 sm:px-3.5 py-1.5 text-xs flex items-center gap-1.5 sm:gap-2 alfa-btn'
+                    : 'text-neutral-400 hover:text-white px-2.5 sm:px-3.5 py-1.5 text-xs flex items-center gap-1.5 sm:gap-2 alfa-btn'
                 }
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{label}</span>
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden inline">{shortLabel}</span>
               </button>
             );
           })}
         </nav>
 
         {/* Demo Controls: Role Switcher + Reset + Advance Pipeline */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Role Pill Switcher */}
           <button
             type="button"
             onClick={() => setUserRole(userRole === 'OWNER' ? 'ACCOUNTANT' : 'OWNER')}
             title="Переключить роль (Собственник / Главный бухгалтер)"
-            className="rounded-full bg-[#1F2229] hover:bg-[#2C303B] border border-white/5 px-3.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white flex items-center gap-1.5 alfa-btn select-none"
+            className="rounded-full bg-[#1F2229] hover:bg-[#2C303B] border border-white/5 px-2.5 sm:px-3.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white flex items-center gap-1.5 alfa-btn select-none min-h-[34px]"
           >
-            <UserCheck className="w-3.5 h-3.5 text-neutral-400" />
-            <span>{userRole === 'OWNER' ? 'Собственник' : 'Главный бухгалтер'}</span>
+            <UserCheck className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+            <span className="hidden sm:inline">{userRole === 'OWNER' ? 'Собственник' : 'Главный бухгалтер'}</span>
+            <span className="sm:hidden inline">{userRole === 'OWNER' ? 'Владелец' : 'Бухгалтер'}</span>
             {isDelegated && userRole === 'ACCOUNTANT' && (
               <span
                 className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse ml-0.5"
@@ -222,10 +224,10 @@ export function DemoGodBar() {
             onClick={() => loadPreset(activePresetId)}
             disabled={isLoading}
             title="Сбросить состояние к текущему пресету"
-            className="rounded-full bg-[#1F2229] hover:bg-[#2C303B] border border-white/5 px-3.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white flex items-center gap-1.5 alfa-btn disabled:opacity-50"
+            className="rounded-full bg-[#1F2229] hover:bg-[#2C303B] border border-white/5 px-2.5 sm:px-3.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white flex items-center gap-1.5 alfa-btn disabled:opacity-50 min-h-[34px]"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Сбросить</span>
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
+            <span className="hidden xs:inline">Сбросить</span>
           </button>
 
           {/* Advance Pipeline Step */}
@@ -234,17 +236,18 @@ export function DemoGodBar() {
             onClick={advancePipeline}
             disabled={isLoading}
             title="Продвинуть заявку по кредитному конвейеру"
-            className="bg-[#EF3124] hover:bg-[#D9261A] text-white rounded-full px-4 py-1.5 text-xs font-bold shadow-md flex items-center gap-1.5 alfa-btn disabled:opacity-50"
+            className="bg-[#EF3124] hover:bg-[#D9261A] text-white rounded-full px-3 sm:px-4 py-1.5 text-xs font-bold shadow-md flex items-center gap-1.5 alfa-btn disabled:opacity-50 min-h-[34px]"
           >
-            <Play className="w-3.5 h-3.5 fill-white" />
-            <span>Шаг конвейера</span>
+            <Play className="w-3.5 h-3.5 fill-white shrink-0" />
+            <span className="hidden sm:inline">Шаг конвейера</span>
+            <span className="sm:hidden inline">Шаг</span>
           </button>
         </div>
       </div>
 
       {/* Row 2: Secondary Preset Selector Bar */}
-      <div className="bg-[#0B0C0E] border-t border-white/5 py-1.5 px-4 sm:px-6">
-        <div className="max-w-[1680px] mx-auto flex items-center gap-2 overflow-x-auto scrollbar-hide">
+      <div className="bg-[#0B0C0E] border-t border-white/5 py-1.5 px-3 sm:px-6">
+        <div className="max-w-[1680px] mx-auto flex items-center gap-2 overflow-x-auto touch-scroll scrollbar-hide py-0.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 shrink-0 mr-1 select-none">
             Сценарии:
           </span>

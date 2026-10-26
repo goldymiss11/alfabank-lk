@@ -140,13 +140,13 @@ function SignModal({ offer, application, onClose, onSigned }: SignModalProps) {
   const applicationIdShort = application.id ? application.id.slice(0, 8).toUpperCase() : '001';
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-neutral-200/80 space-y-6 relative animate-alfa-scale-in my-auto max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl p-4 sm:p-7 max-w-lg w-full shadow-2xl border border-neutral-200/80 space-y-5 sm:space-y-6 relative animate-alfa-scale-in my-auto max-h-[92vh] overflow-y-auto">
         {/* Кнопка закрытия в верхнем правом углу */}
         <button
           type="button"
           onClick={step === 'funded' ? handleFinish : onClose}
-          className="absolute top-5 right-5 sm:top-6 sm:right-6 w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 flex items-center justify-center transition-colors z-10 alfa-btn"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-colors z-10 alfa-btn"
           aria-label="Закрыть"
         >
           <X className="w-4 h-4" />
@@ -437,7 +437,7 @@ export function CounterOffersMatrix({ offers, application, onOfferAccepted, isSp
               <div
                 key={offer.variant_index}
                 onClick={() => setActiveVariant(offer.variant_index)}
-                className={`rounded-3xl border p-6 flex flex-col justify-between transition-all cursor-pointer bg-white alfa-card-hover ${
+                className={`rounded-3xl border p-4 sm:p-6 flex flex-col justify-between transition-all cursor-pointer bg-white alfa-card-hover ${
                   isSelected
                     ? 'border-neutral-900 ring-2 ring-neutral-900/10 shadow-sm'
                     : 'border-neutral-200/80 hover:border-neutral-300'

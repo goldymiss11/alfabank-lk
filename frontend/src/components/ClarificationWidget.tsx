@@ -101,7 +101,7 @@ function ClarificationCard({ clarification, applicationId, onResponded }: ItemPr
   }
 
   return (
-    <div className="rounded-3xl bg-white border border-amber-200/80 p-6 shadow-xs space-y-4 alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-amber-200/80 p-4 sm:p-6 shadow-xs space-y-4 alfa-card-hover">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">

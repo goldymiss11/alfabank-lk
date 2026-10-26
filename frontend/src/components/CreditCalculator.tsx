@@ -87,21 +87,21 @@ export function CreditCalculator({ netMonthlyIncome, existingPayments, grade, su
   const ZoneIcon = activeZone.icon;
 
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 shadow-xs alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 shadow-xs alfa-card-hover">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Кредитный калькулятор</p>
-        <h3 className="text-xl font-bold text-neutral-900 mt-1">Safe Cash-Flow — умный расчет нагрузки бизнеса</h3>
+        <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mt-1">Safe Cash-Flow — умный расчет нагрузки бизнеса</h3>
       </div>
 
       {/* 2-column Bento Layout */}
-      <div className={`grid grid-cols-1 ${isSplit ? '2xl:grid-cols-12' : 'lg:grid-cols-12'} gap-6 items-start`}>
+      <div className={`grid grid-cols-1 ${isSplit ? '2xl:grid-cols-12' : 'lg:grid-cols-12'} gap-4 sm:gap-6 items-start`}>
         {/* Left column: Parameters (7 cols) */}
-        <div className={`${isSplit ? '2xl:col-span-7' : 'lg:col-span-7'} space-y-5`}>
+        <div className={`${isSplit ? '2xl:col-span-7' : 'lg:col-span-7'} space-y-4 sm:space-y-5`}>
           {/* Product selector tabs */}
           <div className="space-y-2">
             <span className="text-xs font-medium text-neutral-500">Кредитный продукт</span>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {PRODUCTS.map(p => {
                 const isSelected = product === p.type;
                 return (
@@ -113,7 +113,7 @@ export function CreditCalculator({ netMonthlyIncome, existingPayments, grade, su
                       setAmount(Math.floor((p.minAmt + p.maxAmt) / 4));
                       setTerm(Math.floor((p.minTerm + p.maxTerm) / 2));
                     }}
-                    className={`rounded-full py-2 px-3.5 text-xs font-semibold transition-all alfa-btn ${
+                    className={`rounded-full py-2 px-3 sm:px-3.5 text-xs font-semibold transition-all alfa-btn min-h-[36px] ${
                       isSelected
                         ? 'bg-[#0F1115] text-white shadow-xs'
                         : 'bg-[#F2F3F5] text-neutral-700 hover:bg-neutral-200'
@@ -127,12 +127,12 @@ export function CreditCalculator({ netMonthlyIncome, existingPayments, grade, su
           </div>
 
           {/* Amount card */}
-          <div className="rounded-2xl bg-[#F8F9FB] p-5 space-y-2.5 border border-neutral-200/70 focus-within:border-neutral-300 focus-within:bg-white transition-all">
+          <div className="rounded-2xl bg-[#F8F9FB] p-3.5 sm:p-5 space-y-2.5 border border-neutral-200/70 focus-within:border-neutral-300 focus-within:bg-white transition-all">
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-neutral-500">Сумма кредита</span>
               <span className="text-xs text-neutral-400">лимит до {formatRub(cfg.maxAmt)}</span>
             </div>
-            <div className="text-2xl font-black text-neutral-900 tabular-nums tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-neutral-900 tabular-nums tracking-tight">
               {safeAmount.toLocaleString('ru-RU')} ₽
             </div>
             <Slider
@@ -150,12 +150,12 @@ export function CreditCalculator({ netMonthlyIncome, existingPayments, grade, su
           </div>
 
           {/* Term card */}
-          <div className="rounded-2xl bg-[#F8F9FB] p-5 space-y-2.5 border border-neutral-200/70 focus-within:border-neutral-300 focus-within:bg-white transition-all">
+          <div className="rounded-2xl bg-[#F8F9FB] p-3.5 sm:p-5 space-y-2.5 border border-neutral-200/70 focus-within:border-neutral-300 focus-within:bg-white transition-all">
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-neutral-500">Срок финансирования</span>
               <span className="text-xs text-neutral-400">от {cfg.minTerm} до {cfg.maxTerm} мес.</span>
             </div>
-            <div className="text-2xl font-black text-neutral-900 tabular-nums tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-neutral-900 tabular-nums tracking-tight">
               {safeTerm} мес.
             </div>
             <Slider
@@ -175,7 +175,7 @@ export function CreditCalculator({ netMonthlyIncome, existingPayments, grade, su
 
         {/* Right column: "Наше предложение" / Calculation Card (5 cols) */}
         <div className={isSplit ? '2xl:col-span-5' : 'lg:col-span-5'}>
-          <div className="rounded-3xl bg-white border border-neutral-200/90 p-6 space-y-4 shadow-sm sticky top-4">
+          <div className="rounded-3xl bg-white border border-neutral-200/90 p-4 sm:p-6 space-y-4 shadow-sm sticky top-4">
             {/* Card Header */}
             <div className="text-xs font-bold uppercase tracking-wider text-neutral-400">
               Предварительный расчёт

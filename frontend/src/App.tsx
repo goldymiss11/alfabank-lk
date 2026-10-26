@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Building2, ShieldCheck, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { DemoGodBar } from './components/DemoGodBar';
 import { ClientCabinetView } from './components/ClientCabinetView';
@@ -7,6 +7,7 @@ import { useAppStore } from './store/appStore';
 import api, { getApiErrorMessage } from './api/client';
 
 function App() {
+  const [mobileSplitTab, setMobileSplitTab] = useState<'client' | 'bank' | 'both'>('client');
   const {
     application,
     isLoading,
@@ -83,7 +84,7 @@ function App() {
       <DemoGodBar />
 
       {/* Main content area */}
-      <main className="max-w-[1680px] w-full mx-auto px-4 sm:px-6 py-5 flex-1">
+      <main className="max-w-[1680px] w-full mx-auto px-3 sm:px-6 py-3 sm:py-5 flex-1">
         {errorMessage && (
           <div role="alert" className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -147,30 +148,73 @@ function App() {
           <div key={`${viewMode}-${application.id || activePresetId}`} className="animate-alfa-in">
             {/* Split Screen: 6+6 columns */}
             {viewMode === 'split' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 relative">
-                {/* Rounded thin divider between columns for desktop */}
-                <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px bg-neutral-200/80 rounded-full pointer-events-none" />
-
-                {/* Left: Client Cabinet */}
-                <div className="space-y-0 overflow-y-auto max-h-[calc(100vh-100px)] pr-1.5 lg:pr-3">
-                  <div className="sticky top-0 z-10 bg-[#F4F5F7] py-1.5 mb-3">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-neutral-200/80 rounded-full shadow-xs">
-                      <Building2 className="w-4 h-4 text-[#EF3124]" />
-                      <span className="text-xs font-bold text-neutral-800 tracking-tight">Кабинет предпринимателя</span>
-                    </div>
+              <div>
+                {/* Mobile Tab Switcher for Split View (< lg) */}
+                <div className="lg:hidden mb-3 flex items-center justify-center">
+                  <div className="inline-flex rounded-full bg-white p-1 border border-neutral-200/80 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setMobileSplitTab('client')}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-all alfa-btn ${
+                        mobileSplitTab === 'client'
+                          ? 'bg-[#EF3124] text-white shadow-xs'
+                          : 'text-neutral-600 hover:text-neutral-900'
+                      }`}
+                    >
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>Клиент</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileSplitTab('bank')}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-all alfa-btn ${
+                        mobileSplitTab === 'bank'
+                          ? 'bg-[#EF3124] text-white shadow-xs'
+                          : 'text-neutral-600 hover:text-neutral-900'
+                      }`}
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Банк</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileSplitTab('both')}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-all alfa-btn ${
+                        mobileSplitTab === 'both'
+                          ? 'bg-[#EF3124] text-white shadow-xs'
+                          : 'text-neutral-600 hover:text-neutral-900'
+                      }`}
+                    >
+                      <span>Оба экрана</span>
+                    </button>
                   </div>
-                  <ClientCabinetView application={application} onRefresh={refresh} isSplit={true} />
                 </div>
 
-                {/* Right: Bank Conveyor */}
-                <div className="overflow-y-auto max-h-[calc(100vh-100px)] pr-1.5 lg:pl-3">
-                  <div className="sticky top-0 z-10 bg-[#F4F5F7] py-1.5 mb-3">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-neutral-200/80 rounded-full shadow-xs">
-                      <ShieldCheck className="w-4 h-4 text-[#EF3124]" />
-                      <span className="text-xs font-bold text-neutral-800 tracking-tight">Кредитный конвейер — Внутри Банка</span>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-0 relative">
+                  {/* Rounded thin divider between columns for desktop */}
+                  <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px bg-neutral-200/80 rounded-full pointer-events-none" />
+
+                  {/* Left: Client Cabinet */}
+                  <div className={`space-y-0 lg:overflow-y-auto lg:max-h-[calc(100vh-100px)] pr-0 lg:pr-3 ${mobileSplitTab === 'bank' ? 'hidden lg:block' : 'block'}`}>
+                    <div className="sticky top-0 z-10 bg-[#F4F5F7] py-1.5 mb-2.5">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-neutral-200/80 rounded-full shadow-xs">
+                        <Building2 className="w-4 h-4 text-[#EF3124]" />
+                        <span className="text-xs font-bold text-neutral-800 tracking-tight">Кабинет предпринимателя</span>
+                      </div>
                     </div>
+                    <ClientCabinetView application={application} onRefresh={refresh} isSplit={true} />
                   </div>
-                  <BankConveyorView application={application} onRefresh={refresh} isSplit={true} />
+
+                  {/* Right: Bank Conveyor */}
+                  <div className={`lg:overflow-y-auto lg:max-h-[calc(100vh-100px)] pl-0 lg:pl-3 ${mobileSplitTab === 'client' ? 'hidden lg:block' : 'block'}`}>
+                    <div className="sticky top-0 z-10 bg-[#F4F5F7] py-1.5 mb-2.5">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-neutral-200/80 rounded-full shadow-xs">
+                        <ShieldCheck className="w-4 h-4 text-[#EF3124]" />
+                        <span className="text-xs font-bold text-neutral-800 tracking-tight">Кредитный конвейер — Внутри Банка</span>
+                      </div>
+                    </div>
+                    <BankConveyorView application={application} onRefresh={refresh} isSplit={true} />
+                  </div>
                 </div>
               </div>
             )}
@@ -193,7 +237,7 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-neutral-200/60 py-3 px-6 flex items-center justify-between text-xs text-neutral-500">
+      <footer className="bg-white border-t border-neutral-200/60 py-3 px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-neutral-500 text-center sm:text-left">
         <span className="font-medium">АО «АЛЬФА-БАНК» · Кредитный конвейер МСБ</span>
         {application?.id && (
           <span className="font-mono text-[11px] bg-neutral-100 px-2.5 py-1 rounded-lg text-neutral-600 tabular-nums">

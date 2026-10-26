@@ -99,7 +99,7 @@ export function AiAdvisorWidget({ applicationId, onSuggestProduct }: Props) {
   };
 
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 shadow-xs space-y-5 alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5 alfa-card-hover">
       {/* Шапка виджета */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-[#EF3124] text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0">

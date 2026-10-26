@@ -24,7 +24,7 @@ interface Props {
 export function AuditTimeline({ auditLog }: Props) {
   const safeLog = auditLog ?? [];
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 space-y-4 shadow-xs alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 space-y-4 shadow-xs alfa-card-hover">
       <div className="flex items-center gap-2">
         <Clock className="w-4 h-4 text-neutral-400" />
         <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Audit Log — История событий</p>

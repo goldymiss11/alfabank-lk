@@ -39,12 +39,12 @@ export function BankConveyorView({ application, onRefresh, isSplit }: Props) {
   return (
     <div className="space-y-4">
       {/* Bank header */}
-      <div className="rounded-3xl bg-white text-neutral-900 p-6 border border-neutral-200/80 shadow-xs space-y-5 alfa-card-hover">
+      <div className="rounded-3xl bg-white text-neutral-900 p-4 sm:p-6 border border-neutral-200/80 shadow-xs space-y-4 sm:space-y-5 alfa-card-hover">
         {/* Status bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-50 border border-red-200/60 rounded-full text-xs font-semibold text-[#EF3124]">
-            <Landmark className="w-3.5 h-3.5 text-[#EF3124]" />
-            <span>Кредитный конвейер Альфа-Банка · Аналитический терминал</span>
+            <Landmark className="w-3.5 h-3.5 text-[#EF3124] shrink-0" />
+            <span>Кредитный конвейер <span className="hidden sm:inline">Альфа-Банка · Аналитический терминал</span></span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-neutral-400">ID заявки:</span>
@@ -57,11 +57,11 @@ export function BankConveyorView({ application, onRefresh, isSplit }: Props) {
         {/* Company data & chips */}
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100/80 flex items-center justify-center shrink-0">
-              <Building2 className="w-6 h-6 text-[#EF3124]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-red-50 border border-red-100/80 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-[#EF3124]" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-neutral-900 tracking-tight truncate">
+              <h2 className="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight break-words">
                 {company?.name || 'ООО Компания'}
               </h2>
               {company?.full_name && company.full_name !== company.name && (
@@ -95,33 +95,33 @@ export function BankConveyorView({ application, onRefresh, isSplit }: Props) {
         </div>
 
         {/* Financial parameters grid (symmetric with ClientCabinetView) */}
-        <div className="border-t border-neutral-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-[#F4F5F7] rounded-2xl p-3.5 flex flex-col justify-between">
+        <div className="border-t border-neutral-100 pt-3 sm:pt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+          <div className="bg-[#F4F5F7] rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between text-neutral-400 text-[11px] font-semibold uppercase tracking-wider mb-1">
               <span>Запрошенная сумма</span>
               <Coins className="w-4 h-4 text-neutral-400" />
             </div>
-            <div className="text-xl font-extrabold text-neutral-900 tracking-tight tabular-nums mt-1">
+            <div className="text-lg sm:text-xl font-extrabold text-neutral-900 tracking-tight tabular-nums mt-0.5 sm:mt-1">
               {requested_amount.toLocaleString('ru-RU')} ₽
             </div>
           </div>
 
-          <div className="bg-[#F4F5F7] rounded-2xl p-3.5 flex flex-col justify-between">
+          <div className="bg-[#F4F5F7] rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between text-neutral-400 text-[11px] font-semibold uppercase tracking-wider mb-1">
               <span>Срок финансирования</span>
               <Clock className="w-4 h-4 text-neutral-400" />
             </div>
-            <div className="text-xl font-extrabold text-neutral-900 tracking-tight tabular-nums mt-1">
+            <div className="text-lg sm:text-xl font-extrabold text-neutral-900 tracking-tight tabular-nums mt-0.5 sm:mt-1">
               {application.requested_term_months} <span className="text-sm font-normal text-neutral-500">мес.</span>
             </div>
           </div>
 
-          <div className="bg-[#F4F5F7] rounded-2xl p-3.5 flex flex-col justify-between">
+          <div className="bg-[#F4F5F7] rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between text-neutral-400 text-[11px] font-semibold uppercase tracking-wider mb-1">
               <span>Кредитный продукт</span>
               <CreditCard className="w-4 h-4 text-neutral-400" />
             </div>
-            <div className="text-sm font-bold text-neutral-900 tracking-tight truncate mt-1 leading-snug" title={PRODUCT_LABELS[application.product_type] ?? application.product_type}>
+            <div className="text-sm font-bold text-neutral-900 tracking-tight truncate mt-0.5 sm:mt-1 leading-snug" title={PRODUCT_LABELS[application.product_type] ?? application.product_type}>
               {PRODUCT_LABELS[application.product_type] ?? application.product_type}
             </div>
           </div>

@@ -133,7 +133,7 @@ export function NewsFeed({ okved, applicationId, onProgramApplied, currentProgra
   }
 
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 shadow-xs space-y-5 alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5 alfa-card-hover">
       {/* Шапка блока */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="space-y-1">

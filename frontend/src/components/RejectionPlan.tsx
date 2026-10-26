@@ -190,9 +190,9 @@ export function RejectionPlan({ plan, stopFactors }: Props) {
   const progressPercent = totalStages > 0 ? Math.round((completedCount / totalStages) * 100) : 0;
 
   return (
-    <div className="rounded-3xl bg-white border border-rose-200/80 p-6 shadow-xs space-y-5 alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-rose-200/80 p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5 alfa-card-hover">
       {/* 1. Верхний информационный баннер */}
-      <div className="rounded-2xl bg-rose-50/70 border border-rose-200/80 p-5 flex items-start gap-3.5">
+      <div className="rounded-2xl bg-rose-50/70 border border-rose-200/80 p-3.5 sm:p-5 flex items-start gap-3 sm:gap-3.5">
         <div className="w-10 h-10 rounded-xl bg-white/80 border border-rose-200 flex items-center justify-center shrink-0 shadow-xs">
           <ShieldAlert className="w-5 h-5 text-[#EF3124]" />
         </div>

@@ -19,12 +19,12 @@ export function DecisionPanel({ decision, requestedAmount }: Props) {
   const fitsSecured = requestedAmount <= max_secured_limit;
 
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 space-y-4 shadow-xs alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 space-y-4 shadow-xs alfa-card-hover">
       <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Модуль 2: Кредитная политика и расчёт лимитов</p>
 
       {/* Limit comparison */}
       <div className="space-y-2">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="bg-[#F8F9FB] rounded-2xl p-3 border border-neutral-200/80 text-center">
             <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-medium">Запрошено</p>
             <p className="text-sm font-black text-neutral-900 tabular-nums mt-0.5">{formatRub(requestedAmount)}</p>

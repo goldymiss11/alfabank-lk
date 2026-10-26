@@ -88,30 +88,35 @@ export function EnrichmentViewer({ snapshots }: Props) {
   const TABS: {
     key: Tab;
     label: string;
+    shortLabel: string;
     icon: React.ReactNode;
     statusDot: string;
   }[] = [
     {
       key: 'fns',
       label: 'ФНС (налоги)',
+      shortLabel: 'ФНС',
       icon: <BarChart2 className="w-3.5 h-3.5" />,
       statusDot: fnsStatusDot,
     },
     {
       key: 'egrul',
       label: 'ЕГРЮЛ (юр. статус)',
+      shortLabel: 'ЕГРЮЛ',
       icon: <Building2 className="w-3.5 h-3.5" />,
       statusDot: egrulStatusDot,
     },
     {
       key: 'bki',
       label: 'БКИ (кредитная история)',
+      shortLabel: 'БКИ',
       icon: <FileText className="w-3.5 h-3.5" />,
       statusDot: bkiStatusDot,
     },
     {
       key: 'accounts',
       label: 'Счета Альфа-Банка (обороты 12 мес.)',
+      shortLabel: 'Обороты',
       icon: <Wallet className="w-3.5 h-3.5" />,
       statusDot: accountsStatusDot,
     },
@@ -147,7 +152,7 @@ export function EnrichmentViewer({ snapshots }: Props) {
     : 4;
 
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-5 space-y-4 text-neutral-900 shadow-xs alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-3.5 sm:p-5 space-y-4 text-neutral-900 shadow-xs alfa-card-hover">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-neutral-100 pb-4">
         <div>
@@ -168,15 +173,15 @@ export function EnrichmentViewer({ snapshots }: Props) {
       </div>
 
       {/* Tabs pills */}
-      <div className="flex flex-wrap items-center gap-2">
-        {TABS.map(({ key, label, icon, statusDot }) => {
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {TABS.map(({ key, label, shortLabel, icon, statusDot }) => {
           const isActive = tab === key;
           return (
             <button
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer alfa-btn ${
+              className={`rounded-full px-3 sm:px-4 py-1.5 text-xs font-semibold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer alfa-btn min-h-[34px] ${
                 isActive
                   ? 'bg-neutral-900 text-white shadow-xs border border-neutral-900'
                   : 'bg-neutral-100 text-neutral-600 hover:text-neutral-900 border border-neutral-200/60'
@@ -184,7 +189,8 @@ export function EnrichmentViewer({ snapshots }: Props) {
             >
               <span className={`w-2 h-2 rounded-full shrink-0 ${statusDot}`} />
               <span className={isActive ? 'text-[#EF3124]' : 'text-neutral-400'}>{icon}</span>
-              <span>{label}</span>
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden inline">{shortLabel}</span>
             </button>
           );
         })}

@@ -121,11 +121,11 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
         </div>
       )}
       {/* Company + Application header card (Bento style) */}
-      <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 shadow-xs space-y-5 alfa-card-hover">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#EF3124] flex items-center justify-center shrink-0">
-              <Building2 className="w-6 h-6" />
+      <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5 alfa-card-hover">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-red-50 text-[#EF3124] flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 text-neutral-600 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase">
@@ -141,7 +141,7 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
                   </>
                 )}
               </div>
-              <h2 className="text-xl font-bold text-neutral-900 tracking-tight mt-1">
+              <h2 className="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight mt-1 break-words">
                 {company?.name || 'ООО «Новая организация»'}
               </h2>
               <div className="flex flex-wrap items-center gap-2 mt-2.5">
@@ -191,28 +191,28 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
         </div>
 
         {/* Loan request summary */}
-        <div className="border-t border-neutral-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-[#F4F5F7] rounded-2xl p-3.5 flex flex-col justify-between">
+        <div className="border-t border-neutral-100 pt-3 sm:pt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+          <div className="bg-[#F4F5F7] rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
             <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
               Запрошенная сумма
             </span>
-            <span className="text-xl font-extrabold text-neutral-900 tabular-nums mt-1">
+            <span className="text-lg sm:text-xl font-extrabold text-neutral-900 tabular-nums mt-0.5 sm:mt-1">
               {formatRub(application.requested_amount)}
             </span>
           </div>
-          <div className="bg-[#F4F5F7] rounded-2xl p-3.5 flex flex-col justify-between">
+          <div className="bg-[#F4F5F7] rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
             <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
               Срок финансирования
             </span>
-            <span className="text-xl font-extrabold text-neutral-900 tabular-nums mt-1">
+            <span className="text-lg sm:text-xl font-extrabold text-neutral-900 tabular-nums mt-0.5 sm:mt-1">
               {application.requested_term_months} мес.
             </span>
           </div>
-          <div className="bg-[#F4F5F7] rounded-2xl p-3.5 flex flex-col justify-between">
+          <div className="bg-[#F4F5F7] rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
             <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
               Кредитный продукт
             </span>
-            <span className="text-sm font-bold text-neutral-900 mt-1 leading-snug">
+            <span className="text-sm font-bold text-neutral-900 mt-0.5 sm:mt-1 leading-snug">
               {PRODUCT_LABELS[application.product_type] ?? application.product_type}
             </span>
           </div>
@@ -284,7 +284,7 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
 
       {/* Decision: approved / counter-offer matrix */}
       {decision_result && (state === 'APPROVED' || state === 'COUNTER_OFFER' || state === 'OFFER_ACCEPTED' || state === 'CONTRACT_SIGNED' || state === 'FUNDED') && (
-        <div className="rounded-3xl border border-indigo-100 bg-indigo-50/50 p-5 shadow-xs space-y-3">
+        <div className="rounded-3xl border border-indigo-100 bg-indigo-50/50 p-4 sm:p-5 shadow-xs space-y-3">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 rounded-xl bg-white p-2 text-indigo-600"><ShieldCheck className="h-4 w-4" /></div>
             <div>
@@ -292,7 +292,7 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
               <p className="mt-1 text-xs leading-relaxed text-neutral-600">Это объяснение построено на факторах синтетического скоринга стенда, а не на реальных банковских данных.</p>
             </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-3">
             <div className="rounded-2xl bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">Сильные стороны</p><p className="mt-1 text-xs text-neutral-700">{(scoring_result?.factors_breakdown ?? []).filter((factor) => factor.score_delta > 0).slice(0, 3).map((factor) => factor.factor_name).join(' · ') || 'Стабильный профиль и обороты'}</p></div>
             <div className="rounded-2xl bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">Ограничение</p><p className="mt-1 text-xs text-neutral-700">{decision_result.soft_flags?.[0] || scoring_result?.stop_factors?.[0] || `Запрос: ${formatRub(application.requested_amount)} при лимите без обеспечения ${formatRub(decision_result.max_unsecured_limit)}`}</p></div>
             <div className="rounded-2xl bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-700">Следующий шаг</p><p className="mt-1 text-xs text-neutral-700">{state === 'FUNDED' ? 'Средства зачислены' : state === 'CONTRACT_SIGNED' ? 'Подтвердите получение финансирования' : 'Выберите подходящее предложение и проверьте документы'}</p></div>
@@ -302,7 +302,7 @@ export function ClientCabinetView({ application, onRefresh, isSplit }: Props) {
 
       {/* Decision: approved / counter-offer matrix */}
       {showOffers && (
-        <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 shadow-xs alfa-card-hover space-y-4">
+        <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 shadow-xs alfa-card-hover space-y-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
               Решение банка

@@ -55,7 +55,7 @@ export function PipelineTracker({ currentState }: Props) {
   const explanation = STATUS_EXPLANATIONS[currentState];
 
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-6 shadow-xs space-y-5 alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5 alfa-card-hover">
       {/* Header with state indicator */}
       <div className="space-y-1.5">
         <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
@@ -97,8 +97,8 @@ export function PipelineTracker({ currentState }: Props) {
       </div>
 
       {/* Horizontal Stepper Track */}
-      <div className="overflow-x-auto pb-3 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
-        <div className="min-w-[580px] px-4 sm:px-6">
+      <div className="overflow-x-auto touch-scroll pb-3 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
+        <div className="min-w-[520px] px-2 sm:px-6">
           <div className="flex items-start justify-between relative">
             {STEPS.map((step, idx) => {
               const isFailedNode = (isRejected || isCancelled) && idx === targetIdx;

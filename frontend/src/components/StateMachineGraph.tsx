@@ -121,7 +121,7 @@ export function StateMachineGraph({ currentState }: Props) {
   const svgH = 530;
 
   return (
-    <div className="rounded-3xl bg-white border border-neutral-200/80 p-5 space-y-3 shadow-xs alfa-card-hover">
+    <div className="rounded-3xl bg-white border border-neutral-200/80 p-3.5 sm:p-5 space-y-3 shadow-xs alfa-card-hover">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 pb-3">
         <div>
@@ -134,8 +134,8 @@ export function StateMachineGraph({ currentState }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-[#F8F9FB] rounded-2xl p-2 border border-neutral-200/60">
-        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-auto min-w-[320px] max-w-[420px] mx-auto block">
+      <div className="overflow-x-auto touch-scroll bg-[#F8F9FB] rounded-2xl p-2 border border-neutral-200/60">
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-auto min-w-[280px] max-w-[420px] mx-auto block">
           <defs>
             <filter id="active-glow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#EF3124" floodOpacity="0.3" />
