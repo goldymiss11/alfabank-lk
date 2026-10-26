@@ -61,6 +61,7 @@ MASTER_SPEC.md
 case.pdf
 *.pdf
 !backend/uploads/*.pdf
+!docs/*.pdf
 .claude/
 backend/.claude/
 *.mcp.json

@@ -6,6 +6,7 @@
 
 ![Демонстрация работы кредитного конвейера](docs/video/demo_preview.gif)
 
+> 📊 **Презентация проекта (GLO):** [docs/Alfa-Konvejer-Umnyj-kreditnyj-kabinet-MSP.pptx](docs/Alfa-Konvejer-Umnyj-kreditnyj-kabinet-MSP.pptx) | [docs/Alfa-Konvejer-Umnyj-kreditnyj-kabinet-MSP.pdf](docs/Alfa-Konvejer-Umnyj-kreditnyj-kabinet-MSP.pdf)
 > 📹 **Видео полного прохождения сценария (Fast-track, контр-оффер, субсидии, роли):** [docs/video/demo_walkthrough.mp4](docs/video/demo_walkthrough.mp4)
 
 ---
