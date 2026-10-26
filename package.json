@@ -1,0 +1,8 @@
+{
+  "name": "alfa-credit-conveyor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && rm -rf dist && cp -r frontend/dist dist"
+  }
+}
